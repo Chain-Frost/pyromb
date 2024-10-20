@@ -1,3 +1,4 @@
+# src\pyromb\model\rorb.py
 from .model import Model
 from ..core.traveller import Traveller
 from ..core.attributes.basin import Basin
@@ -7,7 +8,10 @@ from .. import resources
 import json
 import os
 
-class VectorBlock():
+import logging
+
+
+class VectorBlock:
     """
     Builds the vector block for the RORB control file.
     """
@@ -18,45 +22,47 @@ class VectorBlock():
         self._stateVector = []
         self._controlVector = []
 
-        resources_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'resources')
-        with open(os.path.join(resources_dir, 'formatting.json'), 'r') as f:
+        resources_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "resources")
+        with open(os.path.join(resources_dir, "formatting.json"), "r") as f:
             self._formattingOptions = json.load(f)
-    
+
     def step(self, traveller: Traveller) -> None:
-        """ 
+        """
         Calculate action to take at the current step and store it in the VectorBlock's state.
-        
-        Step is to be used at every update of the Traveller. The RORB control vector 
+
+        Step is to be used at every update of the Traveller. The RORB control vector
         is then built from the VectorBlock's state after the catchment has been traversed.
 
         Parameters
         ----------
         traveller : Traveller
-            The traveller for the catchment being built. 
+            The traveller for the catchment being built.
         """
 
         self._state(traveller)
         self._control(self._stateVector[-1], traveller)
-    
+
     def build(self, traveller: Traveller) -> str:
-        """ 
+        """
         Builds the vector block string.
-        
+
         Parameters
         ----------
         traveller: Traveller
             The traveller that traversed the catchment.
-            
+
         Returns
         -------
         str
-            The vector block string to be used in the .catg file 
+            The vector block string to be used in the .catg file
         """
 
-        vectorStr = "0\n"                   # Start with code 0, reach types are specified in the control block.
+        vectorStr = "0\n"  # Start with code 0, reach types are specified in the control block.
         for s in self._controlVector:
             vectorStr += f"{s}\n"
-        vectorStr += f"{self._subAreaStr(self._stateVector, traveller)}\n{self._fracImpStr(self._stateVector, traveller)}\n"
+        vectorStr += (
+            f"{self._subAreaStr(self._stateVector, traveller)}\n{self._fracImpStr(self._stateVector, traveller)}\n"
+        )
         return vectorStr
 
     def _state(self, traveller: Traveller) -> None:
@@ -78,32 +84,82 @@ class VectorBlock():
             The traveller traversing this catchment.
         """
 
+        # Retrieve current position and upstream position
         i = traveller._pos
         up = traveller.top(i)
-        
-        if i == traveller._endSentinel:
-            ret = (0, i)
-        elif (self._runningHydro == False) and (isinstance(traveller._catchment._vertices[i], Basin)):
-            self._runningHydro = True
-            traveller.next()
-            ret = (1, i)
-        elif (self._storedHydro) and (self._storedHydro[-1] == i) and (self._runningHydro):
-            self._storedHydro.pop()
-            ret = (4, i)
-        elif (self._runningHydro) and (isinstance(traveller._catchment._vertices[i], Basin)) and (up == i):
-            traveller.next()
-            ret = (2, i)
-        elif (self._runningHydro) and (up != i):
-            self._storedHydro.append(i)
-            self._runningHydro = False
-            traveller.next()
-            ret = (3, i)
-        elif (self._runningHydro) and (isinstance(traveller._catchment._vertices[i], Confluence)) and (up == i):
-            traveller.next()
-            ret = (5, i) 
-        
-        self._stateVector.append(ret)
-        
+
+        # Log the current state
+        logging.debug("--- _state Method Invocation ---")
+        logging.debug(f"Current Position (_pos): {i}")
+        logging.debug(f"Top Position (traveller.top({i})): {up}")
+        logging.debug(f"Running Hydrograph (_runningHydro): {self._runningHydro}")
+        logging.debug(f"Stored Hydrograph Stack (_storedHydro): {self._storedHydro}")
+
+        # Identify the node type
+        current_node = traveller._catchment._vertices[i]
+        node_type = type(current_node).__name__
+        logging.debug(f"Current Node Type: {node_type}")
+
+        try:
+            if i == traveller._endSentinel:
+                ret = (0, i)
+                logging.debug(f"Reached end sentinel. Setting ret to {ret}")
+
+            elif (not self._runningHydro) and isinstance(current_node, Basin):
+                self._runningHydro = True
+                logging.debug(f"Node {i} is a Basin and no running hydrograph. Setting _runningHydro to True.")
+                traveller.next()
+                ret = (1, i)
+                logging.debug(f"Moved to next node. Setting ret to {ret}")
+
+            elif (self._storedHydro) and (self._storedHydro[-1] == i) and self._runningHydro:
+                popped = self._storedHydro.pop()
+                logging.debug(f"Node {i} has a stored hydrograph. Popped {popped} from _storedHydro.")
+                ret = (4, i)
+                logging.debug(f"Setting ret to {ret}")
+
+            elif (self._runningHydro) and isinstance(current_node, Basin) and (up == i):
+                logging.debug(
+                    f"Node {i} is a Basin with running hydrograph and no upstream reaches. Moving to next node."
+                )
+                traveller.next()
+                ret = (2, i)
+                logging.debug(f"Moved to next node. Setting ret to {ret}")
+
+            elif (self._runningHydro) and (up != i):
+                self._storedHydro.append(i)
+                self._runningHydro = False
+                logging.debug(
+                    f"Node {i} has upstream reaches. Appended to _storedHydro and set _runningHydro to False."
+                )
+                traveller.next()
+                ret = (3, i)
+                logging.debug(f"Moved to next node. Setting ret to {ret}")
+
+            elif (self._runningHydro) and isinstance(current_node, Confluence) and (up == i):
+                logging.debug(
+                    f"Node {i} is a Confluence with running hydrograph and no upstream reaches. Moving to next node."
+                )
+                traveller.next()
+                ret = (5, i)
+                logging.debug(f"Moved to next node. Setting ret to {ret}")
+
+            else:
+                logging.error(
+                    f"Unhandled state in _state method: "
+                    f"Position={i}, Top={up}, _runningHydro={self._runningHydro}, "
+                    f"_storedHydro={self._storedHydro}, Node Type={node_type}"
+                )
+                raise ValueError("Incorrect value passed - not sure of the cause")
+
+            # Append the result to the state vector
+            self._stateVector.append(ret)
+            logging.debug(f"Appended ret {ret} to _stateVector.")
+
+        except Exception as e:
+            logging.exception(f"Exception occurred in _state method: {e}")
+            raise
+
     def _control(self, code: tuple, traveller: Traveller) -> None:
         """
         Format a control vector string according to the RORB manual Table 5-1 p.52 (version 6).
@@ -120,25 +176,28 @@ class VectorBlock():
             The traveller traversing this catchment.
         """
 
+        # initialise with
+        ret = "ERROR if you see this"
+
         if code[0] in (1, 2, 5):
             try:
                 r = traveller.getReach(code[1])
-                if (r.type == ReachType.NATURAL) or (r.type == ReachType.DROWNED):
-                    ret = f"{code[0]},{r.type.value},{r.length() / 1000:.3f},-99"
+                if (r.reachType == ReachType.NATURAL) or (r.reachType == ReachType.DROWNED):
+                    ret = f"{code[0]},{r.reachType.value},{r.length / 1000:.3f},-99"
                 else:
-                    ret = f"{code[0]},{r.type.value},{r.length() / 1000:.3f},{r.getSlope()},-99"
+                    ret = f"{code[0]},{r.reachType.value},{r.length / 1000:.3f},{r.slope},-99"
             except:
                 ret = f"{7}\n\n{0}"
-        
+
         if (code[0] == 3) or (code[0] == 4):
             ret = f"{code[0]}"
-        
-        if (code[0] == 0):
+
+        if code[0] == 0:
             ret = f"{7}\n\n'{0}"
-        
+
         self._controlVector.append(ret)
-    
-    def _subAreaStr(self, code: tuple, traveller: Traveller) -> str:
+
+    def _subAreaStr(self, code: list, traveller: Traveller) -> str:
         """
         Format the subarea string according to the RORB manual.
 
@@ -162,17 +221,16 @@ class VectorBlock():
         areaStr = ""
         for c in code:
             if (c[0] == 1) or (c[0] == 2):
-                areaStr += f"{traveller._catchment._vertices[c[1]].area:{self._formattingOptions['area_table']['percision']}},"
-        areaStr += '-99'
+                areaStr += (
+                    f"{traveller._catchment._vertices[c[1]].area:{self._formattingOptions['area_table']['percision']}},"
+                )
+        areaStr += "-99"
 
-        values = areaStr.split(',')
-        formatted_values = (
-            f"{resources.rorb.AREA_TABLE_HEADER}"
-            f"{self._makeTable(values, 'area_table')}"
-        )
+        values = areaStr.split(",")
+        formatted_values = f"{resources.rorb.AREA_TABLE_HEADER}" f"{self._makeTable(values, 'area_table')}"
 
         return formatted_values
-    
+
     def _fracImpStr(self, code: list, traveller: Traveller) -> str:
         """
         Format the fraction impervious string according to the RORB manual.
@@ -198,16 +256,13 @@ class VectorBlock():
         for c in code:
             if (c[0] == 1) or (c[0] == 2):
                 fStr += f"{traveller._catchment._vertices[c[1]].fi:{self._formattingOptions['fi_table']['percision']}},"
-        fStr += ' -99'
+        fStr += " -99"
 
-        values = fStr.split(',')
-        formatted_values = (
-            f"{values[0]} ,\n"
-            f"{self._makeTable(values[1:], 'fi_table')}"
-        )
+        values = fStr.split(",")
+        formatted_values = f"{values[0]} ,\n" f"{self._makeTable(values[1:], 'fi_table')}"
 
         return formatted_values
-    
+
     def _makeTable(self, value: list, table: str) -> str:
         """
         Format a table string according to the RORB manual.
@@ -233,17 +288,18 @@ class VectorBlock():
                 formatted_values += f"{val:{self._formattingOptions[table]['column_width']}},"
         formatted_values += f"\n{value[-1]}"
 
-        return formatted_values 
-    
+        return formatted_values
+
     @property
     def state(self):
-        return (self._stateVector) 
-    
+        return self._stateVector
+
     @state.setter
     def state(self):
-        raise AttributeError('State vector is generated not set')
+        raise AttributeError("State vector is generated not set")
 
-class GraphicsBlock():
+
+class GraphicsBlock:
     """
     Builds the graphics block for the RORB control file.
     """
@@ -255,8 +311,8 @@ class GraphicsBlock():
         self._nodeID = self._idGenerator()
         self._reachID = self._idGenerator()
 
-        resources_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'resources')
-        with open(os.path.join(resources_dir, 'formatting.json'), 'r') as f:
+        resources_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "resources")
+        with open(os.path.join(resources_dir, "formatting.json"), "r") as f:
             self._formattingOptions = json.load(f)
 
     def step(self, code: tuple, traveller: Traveller) -> None:
@@ -277,10 +333,10 @@ class GraphicsBlock():
 
         self._nodeDisplay(code, traveller)
         self._reachDisplay(code, traveller)
-    
+
     def build(self) -> str:
         """Build the graphical block string for the .catg file.
-        
+
         Returns
         -------
         str
@@ -296,7 +352,7 @@ class GraphicsBlock():
             f"{self._generateNodeString()}"
             f"{resources.rorb.LEADING_TOKEN}\n"
             f"{self._generateReachString()}"
-            f"{resources.rorb.GRAPHICAL_TAIL}" 
+            f"{resources.rorb.GRAPHICAL_TAIL}"
         )
 
         return graphicalStr
@@ -304,7 +360,7 @@ class GraphicsBlock():
     def _replaceIDTags(self, vector: list) -> None:
         """
         Replace the ID tags in the vector with the ID generated by the ID generator.
-        
+
         Parameters
         ----------
         vector : list
@@ -328,19 +384,19 @@ class GraphicsBlock():
             The shift factor to apply to the coordinates.
         """
 
-        xs = [row['x'] for row in self._nodeVector]
-        ys = [row['y'] for row in self._nodeVector]
+        xs = [row["x"] for row in self._nodeVector]
+        ys = [row["y"] for row in self._nodeVector]
         scale_x = max(xs) - min(xs)
         scale_y = max(ys) - min(ys)
 
         for i, row in enumerate(self._nodeVector):
-            self._nodeVector[i]['x'] = (row['x'] - min(xs)) / scale_x * scale + shift
-            self._nodeVector[i]['y'] = (row['y'] - min(ys)) / scale_y * scale + shift
+            self._nodeVector[i]["x"] = (row["x"] - min(xs)) / scale_x * scale + shift
+            self._nodeVector[i]["y"] = (row["y"] - min(ys)) / scale_y * scale + shift
 
         for i, row in enumerate(self._reachVector):
-            self._reachVector[i]['x'] = (row['x'] - min(xs)) / scale_x * scale + shift
-            self._reachVector[i]['y'] = (row['y'] - min(ys)) / scale_y * scale + shift
-    
+            self._reachVector[i]["x"] = (row["x"] - min(xs)) / scale_x * scale + shift
+            self._reachVector[i]["y"] = (row["y"] - min(ys)) / scale_y * scale + shift
+
     def _generateNodeString(self) -> str:
         """
         Generates the display information string for the nodes.
@@ -351,15 +407,15 @@ class GraphicsBlock():
 
         nodeStr = resources.rorb.NODE_HEADER
         nodeStr += f"{resources.rorb.LEADING_TOKEN}{len(self._nodeVector):>7}\n"
-        
+
         for row in self._nodeVector:
             nodeStr += resources.rorb.LEADING_TOKEN
             for item in row:
-                nodeStr += f"{row[item]:{self._formattingOptions['node'][item]}}" 
+                nodeStr += f"{row[item]:{self._formattingOptions['node'][item]}}"
             nodeStr += f"\n{resources.rorb.LEADING_TOKEN}\n"
-        
+
         return nodeStr
-    
+
     def _generateReachString(self) -> str:
         """
         Generates the display information string for the reaches.
@@ -374,8 +430,8 @@ class GraphicsBlock():
         for row in self._reachVector:
             reachStr += resources.rorb.LEADING_TOKEN
             for item in row:
-                if (item == 'x') or (item == 'y'):
-                    reachStr += f"\n{resources.rorb.LEADING_TOKEN}" 
+                if (item == "x") or (item == "y"):
+                    reachStr += f"\n{resources.rorb.LEADING_TOKEN}"
                 reachStr += f"{row[item]:{self._formattingOptions['reach'][item]}}"
             reachStr += "\n"
 
@@ -407,25 +463,25 @@ class GraphicsBlock():
 
             ds_node = traveller.getNode(traveller.down(pos))
             ds_name = f"<{ds_node.name}>"
-            
+
             # Order according to the column order in the control vector.
             data = {
-                'id': f"<{node.name}>",
-                'x': x,
-                'y': y,
-                'icon': 1,
-                'basin': int(isinstance(node, Basin)),
-                'end': int(node.isOut) if isinstance(node, Confluence) else 0,
-                'ds': ds_name,
-                'name': f" {node.name}",
-                'area': node.area if isinstance(node, Basin) else 0,
-                'fi': node.fi if isinstance(node, Basin) else 0,
-                'print': prnt,
-                'excess': 0,
-                'comment': 0
+                "id": f"<{node.name}>",
+                "x": x,
+                "y": y,
+                "icon": 1,
+                "basin": int(isinstance(node, Basin)),
+                "end": int(node.isOut) if isinstance(node, Confluence) else 0,
+                "ds": ds_name,
+                "name": f" {node.name}",
+                "area": node.area if isinstance(node, Basin) else 0,
+                "fi": node.fi if isinstance(node, Basin) else 0,
+                "print": prnt,
+                "excess": 0,
+                "comment": 0,
             }
 
-            self._idMap[data['id']] = next(self._nodeID)
+            self._idMap[data["id"]] = next(self._nodeID)
             self._nodeVector.append(data)
 
     def _reachDisplay(self, code: tuple, traveller: Traveller) -> None:
@@ -457,27 +513,27 @@ class GraphicsBlock():
 
                 # Order according to the column order in the control vector.
                 data = {
-                    'id': f"<{reach.name}>",
-                    'name': f" {reach.name}",
-                    'us': f"<{traveller.getNode(pos).name}>",
-                    'ds': f"<{traveller.getNode(traveller.down(pos)).name}>",
-                    'translation': 0,
-                    'type': reach.type.value,
-                    'print': 0,
-                    'length': reach.length() / 1000,
-                    'slope': reach.slope,
-                    'npoints': 1,
-                    'comment': 0,
-                    'x': x,
-                    'y': y,
+                    "id": f"<{reach.name}>",
+                    "name": f" {reach.name}",
+                    "us": f"<{traveller.getNode(pos).name}>",
+                    "ds": f"<{traveller.getNode(traveller.down(pos)).name}>",
+                    "translation": 0,
+                    "type": reach.reachType.value,
+                    "print": 0,
+                    "length": reach.length / 1000,
+                    "slope": reach.slope,
+                    "npoints": 1,
+                    "comment": 0,
+                    "x": x,
+                    "y": y,
                 }
 
-                self._idMap[data['id']] = next(self._reachID)
+                self._idMap[data["id"]] = next(self._reachID)
                 self._reachVector.append(data)
 
             except KeyError:
                 pass
-    
+
     @staticmethod
     def _idGenerator():
         """
@@ -489,20 +545,21 @@ class GraphicsBlock():
             i += 1
             yield i
 
+
 class RORB(Model):
     """
-    Create a RORB GE control vector for input to the RORB runoff routing model. 
+    Create a RORB GE control vector for input to the RORB runoff routing model.
     """
-    
+
     def __init__(self):
         pass
-    
+
     def getVector(self, traveller: Traveller) -> str:
         traveller.next()
         vectorBlock = VectorBlock()
         graphicBlock = GraphicsBlock()
 
-        while(traveller._pos != traveller._endSentinel):
+        while traveller._pos != traveller._endSentinel:
             vectorBlock.step(traveller)
             graphicBlock.step(vectorBlock.state[-1], traveller)
 

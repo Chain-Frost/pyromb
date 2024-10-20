@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages  # type:ignore
 import os
 
 # Read the long description from README.md
@@ -9,9 +9,7 @@ with open(os.path.join(current_dir, "README.md"), "r", encoding="utf-8") as fh:
 setup(
     name="pyromb",
     version="0.2.1",
-    packages=find_packages(
-        where="src", exclude=["*.tests", "*.tests.*", "tests.*", "tests"]
-    ),
+    packages=find_packages(where="src", exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     package_dir={"": "src"},
     author="Tom Norman",
     author_email="tom@normcosystems.com",
@@ -24,6 +22,6 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.12",
+    python_requires=">=3.9",
     include_package_data=True,  # Ensures inclusion of files specified in MANIFEST.in
 )

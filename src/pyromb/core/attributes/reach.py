@@ -1,5 +1,9 @@
+# src/pyromb/core/attributes/reach.py
+from typing import Optional, Union, cast
 from ..geometry.line import Line
 from enum import Enum
+from .node import Node
+from ..geometry.point import Point
 
 
 class ReachType(Enum):
@@ -16,7 +20,7 @@ class Reach(Line):
     ----------
     name : str
         The name of the reach, should be unique
-    type : ReachType
+    reachType : ReachType
         The type of reach as specified by the hydrological model.
     slope : float
         The slope of the reach in m/m
@@ -25,20 +29,17 @@ class Reach(Line):
     def __init__(
         self,
         name: str = "",
-        vector: list = [],
-        type: ReachType = ReachType.NATURAL,
+        vector: Optional[list[Node]] = None,
+        reachType: ReachType = ReachType.NATURAL,
         slope: float = 0.0,
     ):
-        super().__init__(vector)
+        super().__init__(cast(list[Point], vector) if vector is not None else [])
         self._name: str = name
-        self._type: ReachType = type
+        self._reachType: ReachType = reachType
         self._slope: float = slope
-        self._idx: int = 0
 
     def __str__(self) -> str:
-        return "Name: {}\nLength: {}\nType: {}\nSlope: {}".format(
-            self._name, round(self.length(), 3), self._type, self._slope
-        )
+        return f"Name: {self._name}\nLength: {round(self.length, 3)}\nType: {self.reachType}\nSlope: {self._slope}"
 
     @property
     def name(self) -> str:
@@ -49,12 +50,12 @@ class Reach(Line):
         self._name = name
 
     @property
-    def type(self) -> ReachType:
-        return self._type
+    def reachType(self) -> ReachType:
+        return self._reachType
 
-    @type.setter
-    def type(self, type: ReachType) -> None:
-        self._type = type
+    @reachType.setter
+    def reachType(self, reachType: ReachType) -> None:
+        self._reachType = reachType
 
     @property
     def slope(self) -> float:
@@ -64,18 +65,18 @@ class Reach(Line):
     def slope(self, slope: float) -> None:
         self._slope = slope
 
-    def getPoint(self, direction: str):
-        """Returns either the upstream or downstream 'ds' point of the reach.
+    def getPoint(self, direction: str) -> Node:
+        """Returns either the upstream or downstream 'us'/'ds' point of the reach.
 
         Parameters
         ----------
         direction : str
-            'us' - for upstream point. \n
+            'us' - for upstream point.
             'ds' - for downstream point
 
         Returns
         -------
-        Point
+        Node
             The US or DS point
 
         Raises
@@ -83,19 +84,17 @@ class Reach(Line):
         KeyError
             If direction is not either 'us' or 'ds'
         """
-
         if direction == "us":
-            return self._vector[self._idx]
+            return cast(Node, self._vector[0])  # Assuming the first point is upstream
         elif direction == "ds":
-            return self._vector[self._end - self._idx]
+            return cast(Node, self._vector[-1])  # Assuming the last point is downstream
         else:
-            raise KeyError("Node direction not properly defines: \n")
+            raise KeyError("Node direction not properly defined: expected 'us' or 'ds'.")
 
-    @property
-    def id(self) -> str:
-        """Alias for the 'name' attribute."""
-        return self._name
+    def getStart(self) -> Node:
+        """Get the upstream node of the reach."""
+        return self.getPoint("us")
 
-    @id.setter
-    def id(self, value: str) -> None:
-        self._name = value
+    def getEnd(self) -> Node:
+        """Get the downstream node of the reach."""
+        return self.getPoint("ds")

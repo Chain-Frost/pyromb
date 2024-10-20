@@ -1,5 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import logging
+
+# Configure logging (adjust as needed or configure in a higher-level module)
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+
 
 def plot_catchment(connected, tr, tc, tb):
     cx = []
@@ -36,7 +41,7 @@ def plot_catchment(connected, tr, tc, tb):
         nodeNames.append("{}[{}]".format(n.name, i))
     for i, b in enumerate(tb):
         nodeNames.append("{}[{}]".format(b.name, i + len(cname)))
-        
+
     fig, ax = plt.subplots()
     im = ax.imshow(connected[0])
     ax.set_xticks(np.arange(0, len(reachNames)))
@@ -45,8 +50,8 @@ def plot_catchment(connected, tr, tc, tb):
     ax.set_yticklabels(nodeNames)
     for i in range(len(nodeNames)):
         for j in range(len(reachNames)):
-            text = ax.text(j, i, connected[0][i, j], ha='center', va='center', color='w')
-    ax.set_title('Catchment Incidence Matrix (DS)')
+            text = ax.text(j, i, connected[0][i, j], ha="center", va="center", color="w")
+    ax.set_title("Catchment Incidence Matrix (DS)")
     fig.tight_layout()
 
     fig, ax = plt.subplots()
@@ -57,7 +62,7 @@ def plot_catchment(connected, tr, tc, tb):
     ax.set_yticklabels(nodeNames)
     for i in range(len(nodeNames)):
         for j in range(len(reachNames)):
-            text = ax.text(j, i, connected[1][i, j], ha='center', va='center', color='w')
-    ax.set_title('Catchment Incidence Matrix (US)')
+            text = ax.text(j, i, connected[1][i, j], ha="center", va="center", color="w")
+    ax.set_title("Catchment Incidence Matrix (US)")
     fig.tight_layout()
     plt.show()

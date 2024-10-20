@@ -127,3 +127,14 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# others
+gpt-input.txt
+src/app_testing.py
+.vscode/settings.json
+test_gdal.py
+
+#started grabbing some unit tests from o1-mini
+tests/
+
+src/app_testing.py

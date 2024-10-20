@@ -11,6 +11,9 @@ from pyromb.core.catchment import Catchment
 # Set the default suffix
 suffix_item = "_sample_new.json"
 
+# this script was used to check outputs when I broke something
+# Might be able to use it to help with unit tests, or pickle things instead
+
 
 def serialize_to_json(data, filename: str, suffix: str = suffix_item) -> None:
     """

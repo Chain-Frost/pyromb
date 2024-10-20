@@ -1,82 +1,90 @@
-from .point import Point
+# src/pyromb/core/geometry/line.py
+from typing import Optional, Iterator
+from osgeo import ogr
 from ...math import geometry
+from .point import Point
 
-class Line():
+
+class GeometryError(Exception):
+    """Custom exception for geometry-related errors."""
+
+    pass
+
+
+class Line:
     """An object representing a line shape type.
-    
+
+    A line is a sequence of points that defines a path.
+
     Attributes
     ----------
     length : float
-    
-    Parametersup
+        The cartesian length of the line.
+
+    Parameters
     ----------
-    vector : list[Points]
-        The points that make the line.
+    vector : Optional[List[Point]]
+        The points that make up the line.
     """
 
-    def __init__(self, vector:list = []):
-        super().__init__()
-        self._vector = pointVector(vector)
-        self._end = len(self._vector) - 1
-        self._length = geometry.length(self.toVector())
+    def __init__(self, vector: Optional[list[Point]] = None) -> None:
+        if vector is None:
+            vector = []
+        self._vector: list[Point] = self.pointVector(vector)
+        self._length: float = self.calculate_length()
 
-    def __iter__(self):
-        self.n = 0
+    def __iter__(self) -> Iterator[Point]:
+        self._current = 0
         return self
-    
+
     def __next__(self) -> Point:
-        if self.n <= self._end:
-            point = self._vector[self.n]
-            self.n += 1
+        if self._current < len(self._vector):
+            point = self._vector[self._current]
+            self._current += 1
             return point
         else:
             raise StopIteration
-    
-    def __len__(self):
-        return self._end
 
-    def __getitem__(self, i):
-        return self._vector[i]
-    
-    def __setitem__(self, i, v:Point):
-        self._vector[i] = v
-    
-    def append(self, point:Point):
+    def __len__(self) -> int:
+        """Return the number of points in the line."""
+        return len(self._vector)
+
+    def __getitem__(self, index: int) -> Point:
+        return self._vector[index]
+
+    def __setitem__(self, index: int, value: Point):
+        if not isinstance(value, Point):
+            raise TypeError("Only Point instances can be assigned.")
+        self._vector[index] = value
+        self._length = self.calculate_length()
+
+    def append(self, point: Point):
         """Add an additional point to the line.
-
-        Append adds the point to the head of the geometry.
 
         Parameters
         ----------
         point : Point
             The point to add to the line.
         """
-        
+        if not isinstance(point, Point):
+            raise TypeError("Only Point instances can be appended.")
         self._vector.append(point)
-        self._end += 1
-        self._length = geometry.length(self.toVector())
-    
+        self._length = self.calculate_length()
+
+    @property
     def length(self) -> float:
-        """The cartisian length of the line.
-
-        Returns
-        -------
-        float
-            The length
-        """
-
+        """float: The cartesian length of the line."""
         return self._length
 
-    def toVector(self) -> list:
-        """Convert the line into a vector of points.
+    def toVector(self) -> list[Point]:
+        """Convert the line into a list of points.
 
         Returns
         -------
-        list
-            A list of points.
+        List[Point]
+            A list of Point objects.
         """
-
-        return self._vector
+        return self._vector.copy()
 
     def getStart(self) -> Point:
         """Get the starting point of the line.
@@ -85,36 +93,78 @@ class Line():
         -------
         Point
             The start point.
-        """
 
+        Raises
+        ------
+        GeometryError
+            If the line is empty.
+        """
+        if not self._vector:
+            raise GeometryError("Line is empty. No start point available.")
         return self._vector[0]
-    
+
     def getEnd(self) -> Point:
         """Get the end point of the line.
 
         Returns
         -------
         Point
-            The end point
+            The end point.
+
+        Raises
+        ------
+        GeometryError
+            If the line is empty.
         """
-        
-        return self._vector[self._end]
+        if not self._vector:
+            raise GeometryError("Line is empty. No end point available.")
+        return self._vector[-1]
 
-def pointVector(vector:list) -> list:
-    """Convert a list of x,y co-ordinates into a list of Points
+    def calculate_length(self) -> float:
+        """Calculate the cartesian length of the line.
 
-    Parameters
-    ----------
-    vector : list
-        A list of (x,y) co-ordinate tuple as floats.
+        Returns
+        -------
+        float
+            The length of the line.
 
-    Returns
-    -------
-    list
-        A list of (x,y) co-odinate tuple as points.
-    """
+        Raises
+        ------
+        GeometryError
+            If the line cannot be converted to an OGR LineString.
+        """
+        if not self._vector:
+            return 0.0
+        coords = [point.coordinates() for point in self._vector]
+        try:
+            ogr_line = geometry.create_line_string(coords)
+            length = geometry.calculate_length(ogr_line)
+            return length
+        except geometry.GeometryError as ge:
+            raise GeometryError(f"Failed to calculate length: {ge}")
 
-    points = []
-    for t in vector:
-        points.append(Point(t[0], t[1]))
-    return points
+    @staticmethod
+    def pointVector(vector: list[Point]) -> list[Point]:
+        """Convert a list of Points ensuring all elements are Point instances.
+
+        Parameters
+        ----------
+        vector : List[Point]
+            A list of Point objects.
+
+        Returns
+        -------
+        List[Point]
+            A validated list of Point objects.
+
+        Raises
+        ------
+        TypeError
+            If any element in the vector is not a Point instance.
+        """
+        if not isinstance(vector, list):
+            raise TypeError("Vector must be a list of Point instances.")
+        for idx, item in enumerate(vector):
+            if not isinstance(item, Point):
+                raise TypeError(f"Item at index {idx} is not a Point instance.")
+        return vector.copy()

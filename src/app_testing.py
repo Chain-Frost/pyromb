@@ -2,39 +2,51 @@
 import os
 import pyromb
 from plot_catchment import plot_catchment
-import shapefile as sf
-from shapely.geometry import shape as shapely_shape
 import logging
+from sf_vector_layer import SFVectorLayer
+from app import main
 
-from app import (
-    main,
-    SFVectorLayer,
-)  # Import main function and SFVectorLayer from app.py
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,  # Capture all levels of logs (DEBUG and above)
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()],
+    # handlers=[logging.FileHandler("debug.log"), logging.StreamHandler()],  # Log to a file  # Also log to the console
+)
 
-# Configure logging (optional: configure in app.py instead)
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-# Define testing paths
-TEST_DIR = r"Q:/qgis/"
-TEST_REACH_PATH = os.path.join(TEST_DIR, "BC_reaches.shp")
-TEST_BASIN_PATH = os.path.join(TEST_DIR, "BC_basins.shp")
-TEST_CENTROID_PATH = os.path.join(TEST_DIR, "BC_centroids.shp")
-TEST_CONFUL_PATH = os.path.join(TEST_DIR, "BC_confluences.shp")
+# Define shapefile paths
+DIR = os.path.dirname(__file__)
+TEST_REACH_PATH = os.path.join(DIR, "../data", "reaches.shp")
+TEST_BASIN_PATH = os.path.join(DIR, "../data", "basins.shp")
+TEST_CENTROID_PATH = os.path.join(DIR, "../data", "centroids.shp")
+TEST_CONFUL_PATH = os.path.join(DIR, "../data", "confluences.shp")
 
-TEST_OUTPUT_PATH = r"Q:\qgis"
-TEST_OUTPUT_NAME = r"testing_mod_python2.catg"
+PARENT_DIR = os.path.dirname(DIR)  # This gets the parent folder of the current directory
+TEST_OUTPUT_PATH = os.path.join(PARENT_DIR, r"./")
+TEST_OUTPUT_NAME = r"testing_ogr_2.catg"
 TEST_OUT = os.path.join(TEST_OUTPUT_PATH, TEST_OUTPUT_NAME)
 
 
-def print_shapefile_fields(shp, name):
-    fields = shp.fields[1:]  # skip DeletionFlag
-    field_names = [field[0] for field in fields]
+def print_vector_layer_fields(vector_layer, name):
+    """
+    Print the field names of a vector layer using OGR.
+
+    Parameters:
+    - vector_layer: An instance of SFVectorLayer.
+    - name: A string indicating the name of the layer.
+    """
+    # Access the layer definition
+    layer_defn = vector_layer.layer.GetLayerDefn()
+    # Get the field names
+    field_names = [layer_defn.GetFieldDefn(i).GetName() for i in range(layer_defn.GetFieldCount())]
     print(f"{name} fields: {field_names}")
 
 
 def test_main():
     ### Config ###
-    plot = False  # Set to True if you want the catchment to be plotted
+    plot = True  # Set to True if you want the catchment to be plotted
+    serialise_for_testing = False
     model = pyromb.RORB()
     # Select your hydrology model, either pyromb.RORB() or pyromb.WBNM()
 
@@ -46,10 +58,10 @@ def test_main():
     confluence_vector = SFVectorLayer(TEST_CONFUL_PATH)
 
     # Print field names (optional, for debugging)
-    print_shapefile_fields(reach_vector, "Reach")
-    print_shapefile_fields(basin_vector, "Basin")
-    print_shapefile_fields(centroid_vector, "Centroid")
-    print_shapefile_fields(confluence_vector, "Confluence")
+    print_vector_layer_fields(reach_vector, "Reach")
+    print_vector_layer_fields(basin_vector, "Basin")
+    print_vector_layer_fields(centroid_vector, "Centroid")
+    print_vector_layer_fields(confluence_vector, "Confluence")
 
     ### Call the main function with test paths and parameters ###
     main(
@@ -60,6 +72,7 @@ def test_main():
         output_name=TEST_OUT,
         plot=plot,
         model=model,
+        serialise_for_testing=serialise_for_testing,
     )
 
 
