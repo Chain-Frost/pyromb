@@ -3,7 +3,6 @@ import os
 import json
 import logging
 from typing import Optional
-from osgeo import ogr  # type:ignore
 import importlib.resources
 
 from ..attributes.basin import Basin

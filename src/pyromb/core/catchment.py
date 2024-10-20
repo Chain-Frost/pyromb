@@ -8,7 +8,6 @@ from .attributes.basin import Basin
 from .attributes.confluence import Confluence
 from .attributes.node import Node
 from .attributes.reach import Reach
-from ..math.geometry import length
 import math
 
 # Configure logging (adjust as needed or configure in a higher-level module)

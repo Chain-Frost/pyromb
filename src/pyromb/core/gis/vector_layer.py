@@ -1,7 +1,6 @@
 # src\pyromb\core\gis\vector_layer.py
 import abc
 from typing import Any
-from osgeo import ogr
 
 
 class VectorLayer(abc.ABC):

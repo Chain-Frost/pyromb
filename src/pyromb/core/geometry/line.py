@@ -1,6 +1,5 @@
 # src/pyromb/core/geometry/line.py
 from typing import Optional, Iterator
-from osgeo import ogr
 from ...math import geometry
 from .point import Point
 

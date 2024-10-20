@@ -1,5 +1,5 @@
 # src/pyromb/core/attributes/reach.py
-from typing import Optional, Union, cast
+from typing import Optional, cast
 from ..geometry.line import Line
 from enum import Enum
 from .node import Node

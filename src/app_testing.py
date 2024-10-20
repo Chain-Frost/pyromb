@@ -1,7 +1,6 @@
 # app_testing.py
 import os
 import pyromb
-from plot_catchment import plot_catchment
 import logging
 from sf_vector_layer import SFVectorLayer
 from app import main

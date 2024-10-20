@@ -2,7 +2,7 @@
 import math
 from typing import Union
 from osgeo import ogr
-from ..core.geometry.point import Point  # Ensure correct import path
+from ..core.geometry.point import Point
 import logging
 
 

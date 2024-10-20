@@ -1,6 +1,5 @@
 # src/pyromb/core/geometry/polygon.py
-from typing import List, Optional
-from osgeo import ogr
+from typing import Optional
 from ...math import geometry
 from .line import Line
 from .point import Point

@@ -2,9 +2,6 @@
 import logging
 from osgeo import ogr  # type: ignore
 from ..gis.vector_layer import VectorLayer
-from ...math import geometry
-
-from osgeo import ogr
 
 
 def validate_shapefile_geometries(vector_layer: VectorLayer, layer_type: str) -> bool:

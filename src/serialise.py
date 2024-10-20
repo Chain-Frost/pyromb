@@ -2,7 +2,6 @@
 import json
 import csv
 import logging
-import pyromb
 from pyromb.core.attributes.basin import Basin
 from pyromb.core.attributes.confluence import Confluence
 from pyromb.core.attributes.reach import Reach
