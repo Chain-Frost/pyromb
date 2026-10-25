@@ -1,13 +1,19 @@
 """Build catchment entities from the public VectorLayer interface."""
 
 import math
-from typing import Any
+from typing import Protocol, SupportsFloat, cast
 
 from ...math import geometry
 from ..attributes.basin import Basin
 from ..attributes.confluence import Confluence
 from ..attributes.reach import Reach, ReachType
 from ..gis.vector_layer import VectorLayer
+
+
+class _Record(Protocol):
+    """The field access shared by dictionaries and QGIS feature records."""
+
+    def __getitem__(self, key: str, /) -> object: ...
 
 
 class Builder:
@@ -18,8 +24,8 @@ class Builder:
     """
 
     @staticmethod
-    def _record(layer: VectorLayer, index: int, fields: tuple[str, ...], kind: str) -> Any:
-        record = layer.record(index)
+    def _record(layer: VectorLayer, index: int, fields: tuple[str, ...], kind: str) -> _Record:
+        record: _Record = layer.record(index)
         for field in fields:
             try:
                 value = record[field]
@@ -39,7 +45,8 @@ class Builder:
         if isinstance(value, bool):
             raise ValueError(f"{kind} feature {index}: {field!r} must be numeric")
         try:
-            result = float(value)
+            # Conversion is deliberately delegated to float at this data boundary.
+            result = float(cast(str | SupportsFloat, value))
         except (TypeError, ValueError, OverflowError) as exc:
             raise ValueError(f"{kind} feature {index}: {field!r} must be numeric") from exc
         if not math.isfinite(result):
@@ -86,13 +93,15 @@ class Builder:
         for i in range(len(reach)):
             record = self._record(reach, i, ("id", "t", "s"), "Reach")
             points = reach.geometry(i)
-            if len(points) < 2 or all(point == points[0] for point in points[1:]):
-                raise ValueError(f"Reach feature {i} requires a non-zero-length line")
+            try:
+                geometry.validate_line(points)
+            except ValueError as exc:
+                raise ValueError(f"Reach feature {i}: {exc}") from exc
             kind = self._reach_type(record["t"], i)
             slope = self._real(record["s"], "Reach", i, "s")
             if slope < 0:
                 raise ValueError(f"Reach feature {i}: 's' must not be negative")
-            reaches.append(Reach(record["id"], points, kind, slope))
+            reaches.append(Reach(cast(str, record["id"]), points, kind, slope))
         return reaches
 
     def basin(self, centroid: VectorLayer, basin: VectorLayer) -> list[Basin]:
@@ -104,7 +113,9 @@ class Builder:
 
         Polygon coordinates must use a projected CRS in metres. The current
         VectorLayer interface represents a single exterior ring; multipart
-        polygons and holes need an extended geometry interface in a later PR.
+        Source geometry types, rings/parts and CRS are not exposed by VectorLayer.
+        Callers must verify those source properties; this method can validate
+        only the reconstructed ring and centroid coordinates.
         """
         if not len(centroid) or not len(basin):
             raise ValueError("Centroid and basin layers must both contain features")
@@ -156,7 +167,7 @@ class Builder:
 
             # Existing Pyromb units: projected coordinates in metres, area in km2.
             area = geometry.ogr_area(polygons[polygon_index]) / 1e6
-            basins.append(Basin(record["id"], point[0], point[1], area, impervious))
+            basins.append(Basin(cast(str, record["id"]), point[0], point[1], area, impervious))
 
         unassigned = sorted(set(range(len(polygons))) - assigned)
         if unassigned:
@@ -170,7 +181,7 @@ class Builder:
             record = self._record(confluence, i, ("id", "out"), "Confluence")
             x, y = self._point(confluence, i, "Confluence")
             outlet = self._binary(record["out"], "Confluence", i, "out")
-            confluences.append(Confluence(record["id"], x, y, outlet))
+            confluences.append(Confluence(cast(str, record["id"]), x, y, outlet))
         outlet_count = sum(item.isOut for item in confluences)
         if outlet_count != 1:
             raise ValueError(

@@ -14,7 +14,7 @@ class MemoryLayer(VectorLayer):
     def geometry(self, i: int) -> list[tuple[float, float]]:
         return self.features[i][0]
 
-    def record(self, i: int) -> dict:
+    def record(self, i: int) -> dict[str, object]:
         return self.features[i][1]
 
     def __len__(self) -> int:
@@ -128,6 +128,16 @@ def test_zero_length_reach_is_error():
     with pytest.raises(ValueError, match="non-zero-length"):
         Builder().reach(MemoryLayer([
             ([(0, 0), (0, 0)], {"id": "R", "t": 1, "s": 0.01}),
+        ]))
+
+
+@pytest.mark.parametrize("point", [
+    (float("nan"), 0), (float("inf"), 0), ("invalid", 0), (0,),
+])
+def test_invalid_reach_coordinates_are_rejected_by_builder(point):
+    with pytest.raises(ValueError, match="Reach feature 0.*coordinates"):
+        Builder().reach(MemoryLayer([
+            ([(0, 0), point, (10, 0)], {"id": "R", "t": 1, "s": 0.01}),
         ]))
 
 

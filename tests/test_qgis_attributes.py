@@ -145,3 +145,42 @@ def test_qgis_public_output(qgis_adapter, model, expected):
     catchment.connect()
     output = Traveller(catchment).getVector(model())
     assert hashlib.sha256(output.encode()).hexdigest() == expected
+
+
+def test_adapter_coordinates_do_not_identify_source_type_or_crs(qgis_adapter):
+    core, adapter = qgis_adapter
+    ring = "(0 0,10 0,10 10,0 10,0 0)"
+    sources = []
+    for kind, crs, wkt in [
+        ("Polygon", "EPSG:28350", f"POLYGON ({ring})"),
+        ("LineString", "EPSG:28350", f"LINESTRING {ring}"),
+        ("Polygon", "EPSG:4326", f"POLYGON ({ring})"),
+    ]:
+        source = core.QgsVectorLayer(f"{kind}?crs={crs}", "source", "memory")
+        feature = core.QgsFeature()
+        feature.setGeometry(core.QgsGeometry.fromWkt(wkt))
+        assert source.dataProvider().addFeatures([feature])[0]
+        sources.append(source)
+    coordinates = [adapter(source).geometry(0) for source in sources]
+    assert coordinates[0] == coordinates[1] == coordinates[2]
+    assert sources[0].wkbType() != sources[1].wkbType()
+    assert sources[0].crs() != sources[2].crs()
+
+
+@pytest.mark.parametrize("kind,wkt,area", [
+    ("Polygon", "POLYGON ((0 0,10 0,10 10,0 10,0 0),(2 2,2 8,8 8,8 2,2 2))", 64),
+    ("MultiPolygon", "MULTIPOLYGON (((0 0,10 0,10 10,0 10,0 0)),((20 0,30 0,30 10,20 10,20 0)))", 200),
+])
+def test_flattened_hole_and_multipart_examples_are_rejected(qgis_adapter, kind, wkt, area):
+    from pyromb.math import geometry
+
+    core, adapter = qgis_adapter
+    source = core.QgsVectorLayer(f"{kind}?crs=EPSG:28350", "source", "memory")
+    feature = core.QgsFeature()
+    feature.setGeometry(core.QgsGeometry.fromWkt(wkt))
+    assert feature.geometry().area() == area
+    assert source.dataProvider().addFeatures([feature])[0]
+    # These examples are rejected after flattening. The API cannot establish
+    # that every possible source hole/part arrangement will remain detectable.
+    with pytest.raises(ValueError, match="invalid"):
+        geometry.ogr_polygon(adapter(source).geometry(0))

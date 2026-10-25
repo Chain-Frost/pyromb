@@ -1,17 +1,22 @@
+"""Connect catchment nodes and reaches after validating their identifiers and topology."""
+
 import math
+from collections.abc import Sequence
 from numbers import Number
+from typing import SupportsFloat, cast
 
 import numpy as np
+from numpy.typing import NDArray
 
 from ..math import geometry
+from .attributes.basin import Basin
 from .attributes.confluence import Confluence
 from .attributes.node import Node
 from .attributes.reach import Reach
 
 
 class Catchment:
-    """The Catchment is a tree of attributes which describes how water
-    flows through the model and the entities which act upon it. 
+    """Describe water flow through the catchment and its entities.
 
     Parameters
     ----------
@@ -24,19 +29,22 @@ class Catchment:
     """
 
     @staticmethod
-    def _validate_identifiers(confluences: list, basins: list, reaches: list) -> None:
+    def _validate_identifiers(
+        confluences: Sequence[Confluence], basins: Sequence[Basin], reaches: Sequence[Reach]
+    ) -> None:
         """Enforce one global namespace across model nodes and reaches."""
         names: set[str] = set()
-        for category, elements in (
+        categories: tuple[tuple[str, Sequence[Node | Reach]], ...] = (
             ("Confluence", confluences),
             ("Basin", basins),
             ("Reach", reaches),
-        ):
+        )
+        for category, elements in categories:
             for i, element in enumerate(elements):
-                raw = element.name
+                raw: object = element.name
                 if isinstance(raw, Number) and not isinstance(raw, int):
                     try:
-                        finite = math.isfinite(raw)
+                        finite = math.isfinite(cast(SupportsFloat, raw))
                     except (TypeError, ValueError, OverflowError):
                         finite = False
                     if not finite:
@@ -52,12 +60,15 @@ class Catchment:
                     )
                 names.add(value)
 
-    def __init__(self, confluences: list = [], basins: list = [],  reaches: list = []) -> None:
+    def __init__(
+        self, confluences: list[Confluence] = [], basins: list[Basin] = [], reaches: list[Reach] = []
+    ) -> None:
+        """Store model entities after checking their global identifier namespace."""
         self._validate_identifiers(confluences, basins, reaches)
         self._edges: list[Reach] = reaches
-        self._vertices: list[Node] = confluences + basins
-        self._incidenceMatrixDS: list = []
-        self._incidenceMatrixUS: list = []
+        self._vertices: list[Node] = [*confluences, *basins]
+        self._incidenceMatrixDS: list[list[int]] | NDArray[np.int_] = []
+        self._incidenceMatrixUS: list[list[int]] | NDArray[np.int_] = []
         self._out = 0
         self._endSentinel = -1
 
@@ -164,7 +175,7 @@ class Catchment:
                 f"reach IDs: {[edge.name for edge in self._edges]!r}"
             )
 
-    def connect(self, tolerance: float = 1e-6) -> tuple:
+    def connect(self, tolerance: float = 1e-6) -> tuple[NDArray[np.int_], NDArray[np.int_]]:
         """Connect the individual attributes to create the catchment.
 
         Returns:
@@ -237,7 +248,7 @@ class Catchment:
             #Move in the m direction
             i = u[0]
             idxj = u[1]
-            for l in range(len(connectionMatrix)):
+            for row_index in range(len(connectionMatrix)):
                 idxi = i % len(connectionMatrix)
                 if connectionMatrix[idxi][idxj] > 0:
                     if colour[idxi][idxj] == 0:

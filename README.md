@@ -66,8 +66,7 @@ Line digitisation direction does not define flow: the existing traversal roots
 the tree at the designated outlet and derives downstream connections from it.
 Reversed reaches remain supported. All node and reach-vertex coordinates must
 be finite. Endpoint matching includes the tolerance boundary, reports distances
-for ambiguous candidates, and never changes the input coordinates. The legacy
-nearest-node search has no separate 999-unit limit on explicitly allowed joins.
+for ambiguous candidates, and never changes the input coordinates.
 
 ### Basin geometry matching (QGIS and standalone use)
 
@@ -91,6 +90,21 @@ properties before passing features to Pyromb. Support for holes, multipart
 basins or automatic CRS inspection would require an interface extension, which
 is not part of this contribution. Centroid points on basin boundaries are
 considered unmatched.
+
+### Running validation tests
+
+Use a Python environment with GDAL/OGR and pytest. To exercise genuine QGIS
+records as well, set `PYROMB_QGIS_ADAPTER` to a local copy of the unchanged
+[QVectorLayer adapter](https://github.com/norman-tom/runoff-model/blob/6d18b7419c4b6b3b28b398ac64840ef14fb9932c/runoff_model/custom_types/qvector_layer.py).
+For an OSGeo4W installation at `C:\OSGeo4W`:
+
+```powershell
+$env:PYROMB_QGIS_ADAPTER = 'C:\Temp\qvector_layer.py'
+& C:\OSGeo4W\bin\python-qgis.bat -c "import sys; sys.path.insert(0,'src'); import pytest; raise SystemExit(pytest.main(['-q','-ra']))"
+```
+
+GDAL is required for the full suite. Without the adapter, QGIS-specific tests
+skip; a full QGIS validation run must execute them without skips.
 
 ### Installing python package 
 

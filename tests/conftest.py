@@ -1,10 +1,10 @@
 import os
 from collections import namedtuple
-from typing import Any
 
 import pytest
 
 from pyromb import VectorLayer
+
 
 class Vector(VectorLayer):
     """Read the tracked fixtures using QGIS's bundled OGR."""
@@ -29,7 +29,7 @@ class Vector(VectorLayer):
             raise ValueError("Unsupported test fixture geometry")
         return [(p[0], p[1]) for p in geometry.GetPoints()]
 
-    def record(self, i: int) -> dict[str, Any]:
+    def record(self, i: int) -> dict[str, object]:
         return self.features[i].items()
 
     def __len__(self) -> int:
@@ -40,7 +40,7 @@ class Vector(VectorLayer):
 def vectors() -> tuple[Vector,...]:
     """
     Returns:
-        namedtuple['basin','centroid','confluence','reach']: The vectors to build the catchment. 
+        namedtuple['basin','centroid','confluence','reach']: The vectors to build the catchment.
     """
     root = os.path.dirname(os.path.abspath(__file__))
     basin_vector = Vector(os.path.join(root,'./data', 'basins.shp'))
@@ -49,5 +49,5 @@ def vectors() -> tuple[Vector,...]:
     reach_vector = Vector(os.path.join(root, './data', 'reaches.shp'))
 
     nt = namedtuple('vectors', ['basins', 'centroids', 'confluences', 'reaches'])
-    
+
     return nt(basin_vector, centroid_vector, confluence_vector, reach_vector)

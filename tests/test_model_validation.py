@@ -1,4 +1,4 @@
-"""Model-field, identifier, and outlet validations forward-ported from PR #2."""
+"""Validate model fields, globally unique identifiers and outlet selection."""
 
 from __future__ import annotations
 

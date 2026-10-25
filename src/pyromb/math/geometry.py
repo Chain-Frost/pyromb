@@ -1,3 +1,5 @@
+"""Geometry calculations and the OGR boundary used by catchment construction."""
+
 from __future__ import annotations
 
 import math
@@ -6,10 +8,10 @@ from typing import TYPE_CHECKING
 from ..core.geometry.point import Point
 
 if TYPE_CHECKING:
-    from osgeo import ogr
+    from osgeo import ogr  # type: ignore[import-untyped]  # QGIS bundles GDAL without typing metadata.
 
 
-def length(vertices:list) -> float:
+def length(vertices: list[Point]) -> float:
     """Calculate the cartesian length of a vector of co-ordinates.
 
     Parameters
@@ -22,7 +24,7 @@ def length(vertices:list) -> float:
     float
         The vector length.
     """
-    length = 0
+    length: float = 0
     for i in range(len(vertices) - 1):
         length += math.sqrt( \
         math.pow((vertices[i+1].coordinates()[0] - vertices[i].coordinates()[0]), 2) + \
@@ -31,7 +33,7 @@ def length(vertices:list) -> float:
     return length
 
 # Shoelace algorithm
-def polygon_area(vertices:list) -> float:
+def polygon_area(vertices: list[Point]) -> float:
     """Calculate the cartesian area of a polygon.
 
     Parameters
@@ -44,8 +46,8 @@ def polygon_area(vertices:list) -> float:
     float
         The polygon area.
     """
-    psum = 0
-    nsum = 0
+    psum: float = 0
+    nsum: float = 0
     for i in range(len(vertices)):
         sindex = (i + 1) % len(vertices)
         prod = vertices[i].coordinates()[0] * vertices[sindex].coordinates()[1]
@@ -58,7 +60,7 @@ def polygon_area(vertices:list) -> float:
 
     return abs(1/2*(psum - nsum))
 
-def polygon_centroid(vertices:list) -> Point:
+def polygon_centroid(vertices: list[Point]) -> Point:
     """Calculate the centroid of a polygon.
 
     Parameters
@@ -71,11 +73,11 @@ def polygon_centroid(vertices:list) -> Point:
     Point
         The centroid.
     """
-    sumx = 0
-    sumy = 0
-    suma = 0
+    sumx: float = 0
+    sumy: float = 0
+    suma: float = 0
     for i in range(len(vertices) - 1):
-        p = [(vertices[i].coordinates()[0], vertices[i].coordinates()[1]), (vertices[i+1].coordinates()[0], vertices[i+1].coordinates()[1])]
+        p = [vertices[i].coordinates(), vertices[i+1].coordinates()]
         sumx += (p[0][0] + p[1][0]) * (p[0][0] * p[1][1] - p[1][0] * p[0][1])
         sumy += (p[0][1] + p[1][1]) * (p[0][0] * p[1][1] - p[1][0] * p[0][1])
         suma += p[0][0] * p[1][1] - p[1][0] * p[0][1]
@@ -86,6 +88,19 @@ def polygon_centroid(vertices:list) -> Point:
 
     return Point(Cx, Cy)
 
+
+
+def validate_line(vertices: list[tuple[float, float]]) -> None:
+    """Validate the available XY line coordinates without changing them."""
+    if len(vertices) < 2 or all(point == vertices[0] for point in vertices[1:]):
+        raise ValueError("requires a non-zero-length line")
+    for index, point in enumerate(vertices):
+        try:
+            valid = len(point) >= 2 and all(math.isfinite(value) for value in point[:2])
+        except (TypeError, OverflowError) as exc:
+            raise ValueError(f"vertex {index} has invalid coordinates") from exc
+        if not valid:
+            raise ValueError(f"vertex {index} requires finite XY coordinates")
 
 
 def ogr_polygon(vertices: list[tuple[float, float]]) -> ogr.Geometry:
