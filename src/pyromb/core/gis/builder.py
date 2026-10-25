@@ -83,8 +83,14 @@ class Builder:
 
         basins = []
         assigned: set[int] = set()
+        identifiers = set()
         for i in range(len(centroid)):
             record = self._record(centroid, i, ("id", "fi"), "Centroid")
+            if record["id"] in identifiers:
+                raise ValueError(
+                    f"Centroid feature {i} has duplicate catchment id {record['id']!r}"
+                )
+            identifiers.add(record["id"])
             point = self._point(centroid, i, "Centroid")
             matches = [
                 j for j, polygon in enumerate(polygons)

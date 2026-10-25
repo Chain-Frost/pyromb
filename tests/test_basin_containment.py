@@ -44,6 +44,7 @@ def test_containment_not_nearest_polygon_centroid(ogr_backend):
         ([(1005, 5)], {"id": "B", "fi": 0.2}),
     ])
     result = Builder().basin(centroids, basins)
+    assert [b.name for b in result] == ["A", "B"]
     assert [b.area for b in result] == pytest.approx([0.01, 0.0001])
     assert [b.fi for b in result] == pytest.approx([0.1, 0.2])
 
@@ -105,3 +106,37 @@ def test_invalid_confluence_geometry_is_reported_without_ogr():
     ])
     with pytest.raises(ValueError, match="exactly one point"):
         Builder().confluence(confluence)
+
+
+def test_boundary_centroid_is_error(ogr_backend):
+    with pytest.raises(ValueError, match="exactly one basin"):
+        Builder().basin(
+            MemoryLayer([([(0, 5)], {"id": "boundary", "fi": 0.0})]),
+            MemoryLayer([(rectangle(0, 10), {})]),
+        )
+
+
+def test_missing_centroid_attribute_is_error(ogr_backend):
+    with pytest.raises(ValueError, match="missing required field 'fi'"):
+        Builder().basin(
+            MemoryLayer([([(5, 5)], {"id": "A"})]),
+            MemoryLayer([(rectangle(0, 10), {})]),
+        )
+
+
+def test_zero_length_reach_is_error():
+    with pytest.raises(ValueError, match="non-zero-length"):
+        Builder().reach(MemoryLayer([
+            ([(0, 0), (0, 0)], {"id": "R", "t": 1, "s": 0.01}),
+        ]))
+
+
+def test_duplicate_catchment_ids_are_error(ogr_backend):
+    with pytest.raises(ValueError, match="duplicate.*id"):
+        Builder().basin(
+            MemoryLayer([
+                ([(5, 5)], {"id": "A", "fi": 0.0}),
+                ([(25, 5)], {"id": "A", "fi": 0.0}),
+            ]),
+            MemoryLayer([(rectangle(0, 10), {}), (rectangle(20, 30), {})]),
+        )
