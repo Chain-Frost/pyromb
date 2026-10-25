@@ -39,6 +39,21 @@ These are model-value checks through the existing `VectorLayer.record()`
 interface. They do **not** require any specific shapefile field storage type
 (e.g. OGR Integer64 versus Integer) and do not add dependencies.
 
+### Reach snapping and network topology
+
+`Catchment.connect()` performs a read-only topology preflight before the
+existing model traversal. Every reach endpoint must match **exactly one** basin
+or confluence node within the default tolerance of **1e-6 CRS units**. A
+caller may use `catchment.connect(tolerance=0.01)` to permit up to 0.01 CRS
+units (0.01 m for metre-based CRS). This checks proximity; it does not move
+vertices or automatically repair geometry.
+
+Disconnected subcatchments, ambiguous coincident nodes, self-loops, and
+cyclic or parallel reaches fail with a descriptive error instead of silently
+losing a model connection. A model must form one connected tree leading to
+one outlet. This preflight does **not** rewrite the legacy incidence-matrix
+algorithm or verify model-engine acceptance.
+
 ### Basin geometry matching (QGIS and standalone use)
 
 Pyromb's Builder assigns each centroid to the **polygon containing it**, not
