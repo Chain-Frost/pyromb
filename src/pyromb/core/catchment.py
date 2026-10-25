@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 
 from ..math import geometry
@@ -30,7 +32,12 @@ class Catchment:
             ("Reach", reaches),
         ):
             for i, element in enumerate(elements):
-                value = str(element.name).strip() if element.name is not None else ""
+                raw = element.name
+                if isinstance(raw, float) and not math.isfinite(raw):
+                    raise ValueError(
+                        f"{category} feature {i} has an invalid identifier"
+                    )
+                value = str(raw).strip() if raw is not None else ""
                 if not value:
                     raise ValueError(f"{category} feature {i} has an empty identifier")
                 if value in names:
