@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
+import numpy as np
 import pytest
 
 from pyromb import Builder, Catchment, VectorLayer
@@ -69,7 +72,10 @@ def test_legacy_valid_reach_attributes_accepted():
     assert len(result) == 1 and result[0].slope == pytest.approx(0.001)
 
 
-@pytest.mark.parametrize("bad_value", [None, "", "  ", float("nan")])
+@pytest.mark.parametrize("bad_value", [
+    None, "", "  ", float("nan"), float("inf"),
+    np.float32("nan"), np.float32("inf"), Decimal("NaN"), Decimal("Infinity"),
+])
 def test_empty_or_invalid_identifier_rejected(bad_value):
     # One invalid identifier is rejected before any topology operation.
     basins = [Basin(bad_value, 10, 0, 1, 0)]
@@ -97,6 +103,25 @@ def test_distinct_global_model_identifiers_accepted():
         [Reach("R1", [(0, 0), (10, 0)])],
     )
     assert len(catchment._vertices) == 2 and len(catchment._edges) == 1
+
+
+@pytest.mark.parametrize("category", ["confluences", "basins", "reaches"])
+def test_duplicate_identifiers_within_each_category(category):
+    constructors = {
+        "confluences": lambda: Confluence("same", 0, 0, True),
+        "basins": lambda: Basin("same", 0, 0, 1, 0),
+        "reaches": lambda: Reach("same", [(0, 0), (10, 0)]),
+    }
+    with pytest.raises(ValueError, match="Duplicate model identifier"):
+        Catchment(**{category: [constructors[category](), constructors[category]()]})
+
+
+@pytest.mark.parametrize("reach_type", [1, 2, 3, 4, 1.0, "1"])
+@pytest.mark.parametrize("slope", [0, 0.001, "0.001"])
+def test_supported_reach_values(reach_type, slope):
+    reach = Builder().reach(reaches(t=reach_type, s=slope))[0]
+    assert reach.type.value == int(reach_type)
+    assert reach.slope == float(slope)
 
 
 @pytest.mark.parametrize("bad_fraction", [-0.1, 1.1, "invalid", float("nan")])

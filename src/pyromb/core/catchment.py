@@ -1,4 +1,5 @@
 import math
+from numbers import Number
 
 import numpy as np
 
@@ -33,10 +34,15 @@ class Catchment:
         ):
             for i, element in enumerate(elements):
                 raw = element.name
-                if isinstance(raw, float) and not math.isfinite(raw):
-                    raise ValueError(
-                        f"{category} feature {i} has an invalid identifier"
-                    )
+                if isinstance(raw, Number) and not isinstance(raw, int):
+                    try:
+                        finite = math.isfinite(raw)
+                    except (TypeError, ValueError, OverflowError):
+                        finite = False
+                    if not finite:
+                        raise ValueError(
+                            f"{category} feature {i} has an invalid identifier"
+                        )
                 value = str(raw).strip() if raw is not None else ""
                 if not value:
                     raise ValueError(f"{category} feature {i} has an empty identifier")
