@@ -69,7 +69,11 @@ class Catchment:
         """
         if isinstance(tolerance, bool) or not isinstance(tolerance, (int, float)):
             raise ValueError("Connection tolerance must be a finite non-negative number")
-        if not math.isfinite(tolerance) or tolerance < 0:
+        try:
+            finite_tolerance = math.isfinite(tolerance)
+        except OverflowError as exc:
+            raise ValueError("Connection tolerance must be a finite non-negative number") from exc
+        if not finite_tolerance or tolerance < 0:
             raise ValueError("Connection tolerance must be a finite non-negative number")
         if not self._vertices or not self._edges:
             raise ValueError("Catchment must contain nodes and reaches")
@@ -82,17 +86,21 @@ class Catchment:
             raise ValueError(f"Catchment must have exactly one outlet; found {len(outlets)}")
 
         coordinates = [node.coordinates() for node in self._vertices]
+        for node, (x, y) in zip(self._vertices, coordinates):
+            if not math.isfinite(x) or not math.isfinite(y):
+                raise ValueError(f"Node {node.name!r} has non-finite coordinates")
         adjacency: list[set[int]] = [set() for _ in self._vertices]
 
         for edge in self._edges:
+            for index, vertex in enumerate(edge.toVector()):
+                if not all(math.isfinite(value) for value in vertex.coordinates()):
+                    raise ValueError(
+                        f"Reach {edge.name!r} vertex {index} has non-finite coordinates"
+                    )
             endpoints = (edge.getStart(), edge.getEnd())
             indexes = []
             for direction, point in zip(("start", "end"), endpoints):
                 x, y = point.coordinates()
-                if not math.isfinite(x) or not math.isfinite(y):
-                    raise ValueError(
-                        f"Reach {edge.name!r} {direction} has non-finite coordinates"
-                    )
                 distances = [
                     math.hypot(x - vx, y - vy) for vx, vy in coordinates
                 ]
@@ -109,10 +117,13 @@ class Catchment:
                         f"is {distances[nearest]:g} units away"
                     )
                 if len(matches) != 1:
-                    names = [self._vertices[idx].name for idx in matches]
+                    candidates = [
+                        (self._vertices[idx].name, distances[idx]) for idx in matches
+                    ]
                     raise ValueError(
                         f"Reach {edge.name!r} {direction} endpoint is ambiguous: "
-                        f"matches nodes {names!r} within {tolerance:g} CRS units"
+                        f"matches nodes (name, distance) {candidates!r} "
+                        f"within {tolerance:g} CRS units"
                     )
                 indexes.append(matches[0])
 
@@ -149,7 +160,8 @@ class Catchment:
         if len(self._edges) != len(self._vertices) - 1:
             raise ValueError(
                 "Catchment must be a tree: cycle or parallel reaches detected "
-                f"({len(self._vertices)} nodes, {len(self._edges)} reaches)"
+                f"({len(self._vertices)} nodes, {len(self._edges)} reaches); "
+                f"reach IDs: {[edge.name for edge in self._edges]!r}"
             )
 
     def connect(self, tolerance: float = 1e-6) -> tuple:
@@ -166,8 +178,8 @@ class Catchment:
         for i, edge in enumerate(self._edges):
             s = edge.getStart()
             e = edge.getEnd()
-            minStart = 999
-            minEnd = 999
+            minStart = math.inf
+            minEnd = math.inf
             closestStart = 0
             closestEnd = 0
             for j, vert in enumerate(self._vertices):

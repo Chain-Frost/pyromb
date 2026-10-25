@@ -62,6 +62,13 @@ losing a model connection. A model must form one connected tree leading to
 one outlet. This preflight does **not** rewrite the legacy incidence-matrix
 algorithm or verify model-engine acceptance.
 
+Line digitisation direction does not define flow: the existing traversal roots
+the tree at the designated outlet and derives downstream connections from it.
+Reversed reaches remain supported. All node and reach-vertex coordinates must
+be finite. Endpoint matching includes the tolerance boundary, reports distances
+for ambiguous candidates, and never changes the input coordinates. The legacy
+nearest-node search has no separate 999-unit limit on explicitly allowed joins.
+
 ### Basin geometry matching (QGIS and standalone use)
 
 Pyromb's Builder assigns each centroid to the **polygon containing it**, not

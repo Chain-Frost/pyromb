@@ -8,6 +8,7 @@ This creates a standalone, headless QGIS application, leaving open projects alon
 import hashlib
 import importlib.util
 import json
+import math
 import os
 from pathlib import Path
 import sys
@@ -45,7 +46,27 @@ for backend in ('ogr', 'qgis'):
     result[backend] = {'basins': [(b.name, b.area, b.fi) for b in basins], 'outputs': {}}
     for model in (pyromb.RORB, pyromb.URBS, pyromb.WBNM):
         catchment = pyromb.Catchment(builder.confluence(sources['confluences']), basins, builder.reach(sources['reaches']))
+        if os.environ.get('PYROMB_REVERSE_REACHES') == '1':
+            for reach in catchment._edges:
+                reach.toVector().reverse()
         catchment.connect()
+        result[backend]['topology'] = {
+            'downstream': catchment._incidenceMatrixDS.tolist(),
+            'upstream': catchment._incidenceMatrixUS.tolist(),
+            'endpoint_matches': [
+                {
+                    'reach': reach.name, 'endpoint': direction,
+                    'nearest': sorted([
+                        (node.name, math.hypot(
+                            point.coordinates()[0] - node.coordinates()[0],
+                            point.coordinates()[1] - node.coordinates()[1],
+                        )) for node in catchment._vertices
+                    ], key=lambda item: item[1])[:2],
+                }
+                for reach in catchment._edges
+                for direction, point in [('start', reach.getStart()), ('end', reach.getEnd())]
+            ],
+        }
         try:
             output = pyromb.Traveller(catchment).getVector(model())
         except AttributeError as exc:
