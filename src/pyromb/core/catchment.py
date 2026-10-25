@@ -55,7 +55,98 @@ class Catchment:
         self._out = 0
         self._endSentinel = -1
 
-    def connect(self) -> tuple:
+    def _validate_topology(self, tolerance: float) -> None:
+        """Fail on unsnapped reach ends, ambiguous nodes and invalid networks.
+
+        The preflight is deliberately separate from the inherited traversal.
+        It does not move or join vertices or alter accepted connectivity.
+        """
+        if isinstance(tolerance, bool) or not isinstance(tolerance, (int, float)):
+            raise ValueError("Connection tolerance must be a finite non-negative number")
+        if not math.isfinite(tolerance) or tolerance < 0:
+            raise ValueError("Connection tolerance must be a finite non-negative number")
+        if not self._vertices or not self._edges:
+            raise ValueError("Catchment must contain nodes and reaches")
+
+        outlets = [
+            node for node in self._vertices
+            if isinstance(node, Confluence) and node.isOut
+        ]
+        if len(outlets) != 1:
+            raise ValueError(f"Catchment must have exactly one outlet; found {len(outlets)}")
+
+        coordinates = [node.coordinates() for node in self._vertices]
+        adjacency: list[set[int]] = [set() for _ in self._vertices]
+
+        for edge in self._edges:
+            endpoints = (edge.getStart(), edge.getEnd())
+            indexes = []
+            for direction, point in zip(("start", "end"), endpoints):
+                x, y = point.coordinates()
+                if not math.isfinite(x) or not math.isfinite(y):
+                    raise ValueError(
+                        f"Reach {edge.name!r} {direction} has non-finite coordinates"
+                    )
+                distances = [
+                    math.hypot(x - vx, y - vy) for vx, vy in coordinates
+                ]
+                matches = [
+                    idx for idx, distance in enumerate(distances)
+                    if distance <= tolerance
+                ]
+                if not matches:
+                    nearest = min(range(len(distances)), key=distances.__getitem__)
+                    raise ValueError(
+                        f"Reach {edge.name!r} {direction} endpoint ({x}, {y}) "
+                        f"is not snapped within {tolerance:g} CRS units; "
+                        f"nearest node {self._vertices[nearest].name!r} "
+                        f"is {distances[nearest]:g} units away"
+                    )
+                if len(matches) != 1:
+                    names = [self._vertices[idx].name for idx in matches]
+                    raise ValueError(
+                        f"Reach {edge.name!r} {direction} endpoint is ambiguous: "
+                        f"matches nodes {names!r} within {tolerance:g} CRS units"
+                    )
+                indexes.append(matches[0])
+
+            start, end = indexes
+            if start == end:
+                raise ValueError(
+                    f"Reach {edge.name!r} connects node "
+                    f"{self._vertices[start].name!r} to itself"
+                )
+            adjacency[start].add(end)
+            adjacency[end].add(start)
+
+        # The graph must be a single undirected tree reaching the model outlet.
+        outlet_index = next(
+            idx for idx, node in enumerate(self._vertices)
+            if isinstance(node, Confluence) and node.isOut
+        )
+        visited = {outlet_index}
+        pending = [outlet_index]
+        while pending:
+            current = pending.pop()
+            for neighbour in adjacency[current] - visited:
+                visited.add(neighbour)
+                pending.append(neighbour)
+
+        if len(visited) != len(self._vertices):
+            missing = [
+                node.name for idx, node in enumerate(self._vertices)
+                if idx not in visited
+            ]
+            raise ValueError(
+                f"Disconnected catchment: nodes not connected to outlet: {missing!r}"
+            )
+        if len(self._edges) != len(self._vertices) - 1:
+            raise ValueError(
+                "Catchment must be a tree: cycle or parallel reaches detected "
+                f"({len(self._vertices)} nodes, {len(self._edges)} reaches)"
+            )
+
+    def connect(self, tolerance: float = 1e-6) -> tuple:
         """Connect the individual attributes to create the catchment.
 
         Returns:
@@ -63,6 +154,8 @@ class Catchment:
         tuple
             (downstream, upstream) incidence matricies of the catchment tree.
         """
+        self._validate_topology(tolerance)
+
         connectionMatrix = np.zeros((len(self._vertices), len(self._edges)), dtype=int)
         for i, edge in enumerate(self._edges):
             s = edge.getStart()
