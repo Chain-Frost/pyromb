@@ -5,6 +5,10 @@ Entry head: `3fe4362aac5b49b99ac951da4625229418b00f7c`, verified against GitHub
 and fetched origin before editing. Parent: PR #3 at
 `11ad683b78705f82a24c5416525b273d3368c110`.
 The exact final tested commit is recorded in the PR validation comment.
+During validation, the owner integrated PR #3's squash-merged main into the
+remote PR #4 branch at `ecf37a7` and GitHub retargeted it to main. That update
+had the same file tree as the entry head. It was merged locally without rebase
+or force-push, then the complete suite was rerun at `6995f23`.
 
 ## Implementation and review
 
@@ -97,5 +101,5 @@ not reach slopes. No proprietary model was inspected to seek exceptions.
 
 Output checks establish generation and parity on the representative public
 fixture, not hydraulic engine execution or universal writer support for all
-reach types. WBNM remains an inherited, separately recorded defect. PR #4 remains
-stacked on PR #3; no rebase, retarget, merge or release is part of this validation.
+reach types. WBNM remains an inherited, separately recorded defect. This work
+did not modify PR #3/#5, rebase or retarget PR #4, merge a PR or release anything.
