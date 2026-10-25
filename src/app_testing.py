@@ -15,16 +15,16 @@ logging.basicConfig(
 
 
 # Define shapefile paths
-DIR = os.path.dirname(__file__)
-TEST_REACH_PATH = os.path.join(DIR, "../data", "reaches.shp")
-TEST_BASIN_PATH = os.path.join(DIR, "../data", "basins.shp")
-TEST_CENTROID_PATH = os.path.join(DIR, "../data", "centroids.shp")
-TEST_CONFUL_PATH = os.path.join(DIR, "../data", "confluences.shp")
+DIR: str = os.path.dirname(__file__)
+TEST_REACH_PATH: str = os.path.join(DIR, "../data", "reaches.shp")
+TEST_BASIN_PATH: str = os.path.join(DIR, "../data", "basins.shp")
+TEST_CENTROID_PATH: str = os.path.join(DIR, "../data", "centroids.shp")
+TEST_CONFUL_PATH: str = os.path.join(DIR, "../data", "confluences.shp")
 
-PARENT_DIR = os.path.dirname(DIR)  # This gets the parent folder of the current directory
-TEST_OUTPUT_PATH = os.path.join(PARENT_DIR, r"./")
+PARENT_DIR: str = os.path.dirname(DIR)  # This gets the parent folder of the current directory
+TEST_OUTPUT_PATH: str = os.path.join(PARENT_DIR, r"./")
 TEST_OUTPUT_NAME = r"testing_ogr_2.catg"
-TEST_OUT = os.path.join(TEST_OUTPUT_PATH, TEST_OUTPUT_NAME)
+TEST_OUT: str = os.path.join(TEST_OUTPUT_PATH, TEST_OUTPUT_NAME)
 
 
 def print_vector_layer_fields(vector_layer, name):

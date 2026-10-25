@@ -249,6 +249,13 @@ class Catchment:
         # Find the 'out' node
         self._find_out_node()
 
+        # Determine incidence matrix relating reaches to nodes and map downstream direction between elements
+        # Matrix I (m * m - 1)
+        # m = nodes
+        # n = reaches
+        # value of m n =  the index of the downstream node
+        # Think about I as relating upstream nodes (m) to downstream nodes (m n) through reach (n)
+        # (m n) of -1 indicates no downstream node for relationship m n
         # Initialize incidence matrices with sentinel values
         incidence_matrix_ds = np.full((num_vertices, num_edges), self._endSentinel, dtype=int)
         incidence_matrix_us = np.full((num_vertices, num_edges), self._endSentinel, dtype=int)
