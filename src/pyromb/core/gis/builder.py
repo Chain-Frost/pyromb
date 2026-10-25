@@ -26,11 +26,45 @@ class Builder:
                 raise ValueError(
                     f"{kind} feature {index} is missing required field {field!r}"
                 ) from exc
-            if value is None or value == "":
+            if value is None or (isinstance(value, str) and not value.strip()):
                 raise ValueError(
                     f"{kind} feature {index} has an empty required field {field!r}"
                 )
         return record
+
+    @staticmethod
+    def _real(value: object, kind: str, index: int, field: str) -> float:
+        """Check numeric model attributes."""
+        if isinstance(value, bool):
+            raise ValueError(f"{kind} feature {index}: {field!r} must be numeric")
+        try:
+            result = float(value)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(f"{kind} feature {index}: {field!r} must be numeric") from exc
+        if not math.isfinite(result):
+            raise ValueError(f"{kind} feature {index}: {field!r} must be finite")
+        return result
+
+    @staticmethod
+    def _binary(value: object, kind: str, index: int, field: str) -> bool:
+        """Accept boolean/integer 0 or 1, never an arbitrary truthy value."""
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str) or value not in (0, 1):
+            raise ValueError(f"{kind} feature {index}: {field!r} must be 0 or 1")
+        return bool(value)
+
+    @staticmethod
+    def _reach_type(value: object, index: int) -> ReachType:
+        number = Builder._real(value, "Reach", index, "t")
+        if not number.is_integer():
+            raise ValueError(f"Reach feature {index}: 't' must be an integer")
+        try:
+            return ReachType(int(number))
+        except ValueError as exc:
+            raise ValueError(
+                f"Reach feature {index}: unsupported reach type {number:g}"
+            ) from exc
 
     @staticmethod
     def _point(layer: VectorLayer, index: int, kind: str) -> tuple[float, float]:
@@ -53,7 +87,11 @@ class Builder:
             points = reach.geometry(i)
             if len(points) < 2 or all(point == points[0] for point in points[1:]):
                 raise ValueError(f"Reach feature {i} requires a non-zero-length line")
-            reaches.append(Reach(record["id"], points, ReachType(record["t"]), record["s"]))
+            kind = self._reach_type(record["t"], i)
+            slope = self._real(record["s"], "Reach", i, "s")
+            if slope < 0:
+                raise ValueError(f"Reach feature {i}: 's' must not be negative")
+            reaches.append(Reach(record["id"], points, kind, slope))
         return reaches
 
     def basin(self, centroid: VectorLayer, basin: VectorLayer) -> list[Basin]:
@@ -91,6 +129,11 @@ class Builder:
                     f"Centroid feature {i} has duplicate catchment id {record['id']!r}"
                 )
             identifiers.add(record["id"])
+            impervious = self._real(record["fi"], "Centroid", i, "fi")
+            if not 0 <= impervious <= 1:
+                raise ValueError(
+                    f"Centroid feature {i}: 'fi' must be between 0 and 1"
+                )
             point = self._point(centroid, i, "Centroid")
             matches = [
                 j for j, polygon in enumerate(polygons)
@@ -112,7 +155,7 @@ class Builder:
 
             # Existing Pyromb units: projected coordinates in metres, area in km2.
             area = geometry.ogr_area(polygons[polygon_index]) / 1e6
-            basins.append(Basin(record["id"], point[0], point[1], area, record["fi"]))
+            basins.append(Basin(record["id"], point[0], point[1], area, impervious))
 
         unassigned = sorted(set(range(len(polygons))) - assigned)
         if unassigned:
@@ -125,5 +168,11 @@ class Builder:
         for i in range(len(confluence)):
             record = self._record(confluence, i, ("id", "out"), "Confluence")
             x, y = self._point(confluence, i, "Confluence")
-            confluences.append(Confluence(record["id"], x, y, bool(record["out"])))
+            outlet = self._binary(record["out"], "Confluence", i, "out")
+            confluences.append(Confluence(record["id"], x, y, outlet))
+        outlet_count = sum(item.isOut for item in confluences)
+        if outlet_count != 1:
+            raise ValueError(
+                f"Confluences must have exactly one outlet ('out'=1); found {outlet_count}"
+            )
         return confluences

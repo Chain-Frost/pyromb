@@ -1,3 +1,6 @@
+import math
+from numbers import Number
+
 import numpy as np
 
 from ..math import geometry
@@ -20,7 +23,37 @@ class Catchment:
         The Reaches in the catchment
     """
 
+    @staticmethod
+    def _validate_identifiers(confluences: list, basins: list, reaches: list) -> None:
+        """Enforce one global namespace across model nodes and reaches."""
+        names: set[str] = set()
+        for category, elements in (
+            ("Confluence", confluences),
+            ("Basin", basins),
+            ("Reach", reaches),
+        ):
+            for i, element in enumerate(elements):
+                raw = element.name
+                if isinstance(raw, Number) and not isinstance(raw, int):
+                    try:
+                        finite = math.isfinite(raw)
+                    except (TypeError, ValueError, OverflowError):
+                        finite = False
+                    if not finite:
+                        raise ValueError(
+                            f"{category} feature {i} has an invalid identifier"
+                        )
+                value = str(raw).strip() if raw is not None else ""
+                if not value:
+                    raise ValueError(f"{category} feature {i} has an empty identifier")
+                if value in names:
+                    raise ValueError(
+                        f"Duplicate model identifier {value!r} at {category} feature {i}"
+                    )
+                names.add(value)
+
     def __init__(self, confluences: list = [], basins: list = [],  reaches: list = []) -> None:
+        self._validate_identifiers(confluences, basins, reaches)
         self._edges: list[Reach] = reaches
         self._vertices: list[Node] = confluences + basins
         self._incidenceMatrixDS: list = []
