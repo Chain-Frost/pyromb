@@ -32,8 +32,16 @@ MiRORB is a similar more advance tool which uses the GIS package MapInfo. The un
 The Builder validates reach type (`t`), finite non-negative slope (`s`),
 impervious fraction (`fi`, from 0 to 1), and confluence outlet flag
 (`out`, only 0 or 1). Exactly one confluence must be designated as the
-outlet. `Catchment` additionally requires identifiers to be unique across
-reaches, centroids/basins and confluences.
+outlet. Reach types are 1 (natural), 2 (unlined), 3 (lined), and 4 (drowned).
+Integral numerical values such as `1.0` and numeric strings are accepted for
+reach types; slopes and impervious fractions also accept numeric strings.
+Boolean slopes, types, and impervious fractions are rejected. Outlet flags
+accept boolean values or numeric 0/1, including `0.0`/`1.0`, but not strings.
+`Catchment` additionally requires non-empty, finite identifiers to be unique
+across reaches, centroids/basins and confluences (including within each layer).
+Identifiers are compared as trimmed strings, so `1` and `"1"` collide; their
+original values are retained. Validation does not expand writer support for
+every reach type.
 
 These are model-value checks through the existing `VectorLayer.record()`
 interface. They do **not** require any specific shapefile field storage type
@@ -87,8 +95,9 @@ If that fails, try:
 ## Setting Up A Catchment
 PyRomb uses four shapefiles to provide the necessary information to build the RORB, URBS or WBNM vector, these are detailed below. The attributes that must be present in the shapefile so that PR has can build the control files. The easiest way to ensure the necessary attributes are present is to use the example shapefiles in the [data](https://github.com/norman-tom/pyromb/tree/main/data) folder. 
 
-**WARNING**   
-the id fields must be globally unique between the reaches, confluences and centroids otherwise the .catg / .vec file will not build correctly. This will be updated in subsequent releases. 
+The id fields must be globally unique between the reaches, confluences and
+centroids. `Catchment` rejects missing, blank, non-finite or duplicate IDs before
+building the network.
 
 ### Reaches
 Reaches are the connection between basins and confluences.  
@@ -115,7 +124,8 @@ Point geometry
 **Support**  
 Fraction impervious  
 **Notes**  
-Centroid to Basin matching is done through nearest neighbour. If a centroid is moved too far away from the basin’s true centroid, it may match with another basin, or not match at all. 
+Centroids must lie strictly inside exactly one basin polygon. Each basin must
+contain exactly one centroid; boundary points and ambiguous matches are rejected.
 ### Basins
 Basins are only necessary to provide the centroid with an area. This was done to avoid having to transcribe area information into the Centroid shapefile as an attribute.  
 
@@ -135,7 +145,8 @@ Point geometry
 **Attributes**  
 'id' The name of the confluence [string]  
 'out' Flag whether this confluence is the outfall [integer]  
-<p>If no outlet is set, building the catchment will fail. If more than one is set, the first confluence with this attribute set will be adopted as the outlet. </p>
+Exactly one confluence must have `out=1`; all others must have `out=0`.
+Missing or multiple outlets are rejected.
 
 **Support**  
 Confluence Only  

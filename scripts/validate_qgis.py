@@ -1,6 +1,7 @@
 """Validate public fixtures through OGR and the upstream QGIS adapter.
 
-Run using python-qgis.bat; arguments: source root, output JSON, adapter .py.
+Run using python-qgis.bat; arguments: source root, output JSON, adapter .py,
+and optional directory in which to retain model output bytes for comparison.
 Download the adapter from the pinned revision documented in the validation note.
 This creates a standalone, headless QGIS application, leaving open projects alone.
 """
@@ -53,6 +54,10 @@ for backend in ('ogr', 'qgis'):
             result[backend]['outputs'][model.__name__] = {'error': str(exc)}
             continue
         assert output
+        if len(sys.argv) > 4:
+            destination = Path(sys.argv[4])
+            destination.mkdir(parents=True, exist_ok=True)
+            (destination / f'{backend}-{model.__name__}.txt').write_bytes(output.encode())
         result[backend]['outputs'][model.__name__] = {'sha256': hashlib.sha256(output.encode()).hexdigest(), 'length': len(output)}
 
 result['flattened_geometry'] = {}
