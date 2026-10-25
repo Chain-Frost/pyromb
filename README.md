@@ -27,6 +27,24 @@ MiRORB is a similar more advance tool which uses the GIS package MapInfo. The un
 [Pandas](https://pandas.pydata.org/)
 [Matplotlib](https://matplotlib.org/)
 
+### Basin geometry matching (QGIS and standalone use)
+
+Pyromb's Builder assigns each centroid to the **polygon containing it**, not
+the polygon with the nearest geometric centre. It rejects missing, overlapping,
+or duplicate assignments rather than producing incorrect subcatchment areas.
+
+Basin construction requires the GDAL/OGR Python bindings (`osgeo.ogr`),
+which are included with QGIS/OSGeo4W. Standalone Python installations must
+provide compatible GDAL bindings separately. This does **not** add Shapely or
+Matplotlib to the spatial matching code.
+
+Input polygons must be valid, single exterior rings with coordinates in a
+projected CRS measured in metres (the calculated area is reported in km²).
+The existing `VectorLayer.geometry()` API flattens polygon vertices; it cannot
+faithfully represent holes or multipart polygons. Such inputs require an
+extended vector-layer interface and must not be treated as supported by this
+change. Centroid points on polygon boundaries are considered unmatched.
+
 ### Installing python package 
 
     $ pip install pyromb
