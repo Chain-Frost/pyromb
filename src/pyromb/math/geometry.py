@@ -1,6 +1,12 @@
+from __future__ import annotations
+
 import math
+from typing import TYPE_CHECKING
 
 from ..core.geometry.point import Point
+
+if TYPE_CHECKING:
+    from osgeo import ogr
 
 
 def length(vertices:list) -> float:
@@ -79,3 +85,58 @@ def polygon_centroid(vertices:list) -> Point:
     Cy = (1 / (6 * A)) * sumy
 
     return Point(Cx, Cy)
+
+
+
+def ogr_polygon(vertices: list[tuple[float, float]]) -> ogr.Geometry:
+    """Create a validated OGR polygon from a VectorLayer exterior ring.
+
+    Importing OGR only when needed keeps the rest of Pyromb importable
+    outside QGIS; GDAL Python bindings are required to build basins.
+    """
+    try:
+        from osgeo import ogr
+    except ImportError as exc:
+        raise RuntimeError(
+            "OGR Python bindings are required for basin matching. "
+            "Run under QGIS/OSGeo4W or install GDAL in the Python environment."
+        ) from exc
+
+    try:
+        coords = [(float(x), float(y)) for x, y in vertices]
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Polygon requires a sequence of (x, y) coordinates") from exc
+    if len(coords) < 3 or any(
+        not math.isfinite(x) or not math.isfinite(y) for x, y in coords
+    ):
+        raise ValueError("Polygon needs at least three finite coordinates")
+    if coords[0] != coords[-1]:
+        coords.append(coords[0])
+    if len(set(coords[:-1])) < 3:
+        raise ValueError("Polygon has fewer than three distinct vertices")
+
+    ring = ogr.Geometry(ogr.wkbLinearRing)
+    for x, y in coords:
+        ring.AddPoint_2D(x, y)
+    polygon = ogr.Geometry(ogr.wkbPolygon)
+    polygon.AddGeometry(ring)
+    if polygon.IsEmpty() or not polygon.IsValid() or polygon.GetArea() <= 0:
+        raise ValueError("Polygon is empty, invalid, or has zero area")
+    return polygon
+
+
+def contains(polygon: ogr.Geometry, point: tuple[float, float]) -> bool:
+    """Check strict point-in-polygon containment using OGR/GEOS.
+
+    A point exactly on a basin boundary is not considered inside.
+    """
+    from osgeo import ogr
+
+    test_point = ogr.Geometry(ogr.wkbPoint)
+    test_point.AddPoint_2D(*point)
+    return bool(polygon.Contains(test_point))
+
+
+def ogr_area(polygon: ogr.Geometry) -> float:
+    """Return a validated OGR polygon's plan area in CRS units squared."""
+    return float(polygon.GetArea())

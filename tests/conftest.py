@@ -1,26 +1,39 @@
 import os
 from collections import namedtuple
+from typing import Any
 
 import pytest
-from shapefile import Reader
 
 from pyromb import VectorLayer
 
-class Vector(Reader, VectorLayer):
-    """Wrap the shapefile.Reader() with the necessary interface
-    to work with the builder. 
-    """
-    def __init__(self, path) -> None:
-        super().__init__(path)
+class Vector(VectorLayer):
+    """Read the tracked fixtures using QGIS's bundled OGR."""
 
-    def geometry(self, i) -> list:
-        return self.shape(i).points
+    def __init__(self, path: str) -> None:
+        from osgeo import ogr
 
-    def record(self, i) -> dict:
-        return super().record(i)
+        self.dataset = ogr.Open(path)
+        if self.dataset is None:
+            raise ValueError("Could not open test fixture")
+        self.features = list(self.dataset.GetLayer())
+
+    def geometry(self, i: int) -> list[tuple[float, float]]:
+        from osgeo import ogr
+
+        geometry = self.features[i].GetGeometryRef()
+        if geometry.GetGeometryType() == ogr.wkbPolygon:
+            if geometry.GetGeometryCount() != 1:
+                raise ValueError("Test fixture reader supports exterior rings only")
+            geometry = geometry.GetGeometryRef(0)
+        elif geometry.GetGeometryType() not in (ogr.wkbPoint, ogr.wkbLineString):
+            raise ValueError("Unsupported test fixture geometry")
+        return [(p[0], p[1]) for p in geometry.GetPoints()]
+
+    def record(self, i: int) -> dict[str, Any]:
+        return self.features[i].items()
 
     def __len__(self) -> int:
-        return super().__len__()
+        return len(self.features)
 
 
 @pytest.fixture

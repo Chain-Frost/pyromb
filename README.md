@@ -27,6 +27,71 @@ MiRORB is a similar more advance tool which uses the GIS package MapInfo. The un
 [Pandas](https://pandas.pydata.org/)
 [Matplotlib](https://matplotlib.org/)
 
+### Model input validation
+
+The Builder validates reach type (`t`), finite non-negative slope (`s`),
+impervious fraction (`fi`, from 0 to 1), and confluence outlet flag
+(`out`, only 0 or 1). Exactly one confluence must be designated as the
+outlet. Reach types are 1 (natural), 2 (unlined), 3 (lined), and 4 (drowned).
+Integral numerical values such as `1.0` and numeric strings are accepted for
+reach types; slopes and impervious fractions also accept numeric strings.
+Boolean slopes, types, and impervious fractions are rejected. Outlet flags
+accept boolean values or numeric 0/1, including `0.0`/`1.0`, but not strings.
+`Catchment` additionally requires non-empty, finite identifiers to be unique
+across reaches, centroids/basins and confluences (including within each layer).
+Identifiers are compared as trimmed strings, so `1` and `"1"` collide; their
+original values are retained. Validation does not expand writer support for
+every reach type.
+
+These are model-value checks through the existing `VectorLayer.record()`
+interface. They do **not** require any specific shapefile field storage type
+(e.g. OGR Integer64 versus Integer) and do not add dependencies.
+
+### Reach snapping and network topology
+
+`Catchment.connect()` performs a read-only topology preflight before the
+existing model traversal. Every reach endpoint must match **exactly one** basin
+or confluence node within the default tolerance of **1e-6 CRS units**. A
+caller may use `catchment.connect(tolerance=0.01)` to permit up to 0.01 CRS
+units (0.01 m for metre-based CRS). This checks proximity; it does not move
+vertices or automatically repair geometry.
+
+Disconnected subcatchments, ambiguous coincident nodes, self-loops, and
+cyclic or parallel reaches fail with a descriptive error instead of silently
+losing a model connection. A model must form one connected tree leading to
+one outlet. This preflight does **not** rewrite the legacy incidence-matrix
+algorithm or verify model-engine acceptance.
+
+Line digitisation direction does not define flow: the existing traversal roots
+the tree at the designated outlet and derives downstream connections from it.
+Reversed reaches remain supported. All node and reach-vertex coordinates must
+be finite. Endpoint matching includes the tolerance boundary, reports distances
+for ambiguous candidates, and never changes the input coordinates. The legacy
+nearest-node search has no separate 999-unit limit on explicitly allowed joins.
+
+### Basin geometry matching (QGIS and standalone use)
+
+Pyromb's Builder assigns each centroid to the **polygon containing it**, not
+the polygon with the nearest geometric centre. It rejects missing, overlapping,
+or duplicate assignments rather than producing incorrect subcatchment areas.
+
+Basin construction requires the GDAL/OGR Python bindings (`osgeo.ogr`),
+which are included with QGIS/OSGeo4W. Standalone Python installations must
+provide compatible GDAL bindings separately. This does **not** add Shapely or
+Matplotlib to the spatial matching code.
+
+Input polygons must be valid, single exterior rings with coordinates in a
+projected CRS measured in metres (the calculated area is reported in km²).
+The existing `VectorLayer.geometry()` API returns only coordinate sequences and
+does not expose the source feature's geometry type, ring/part structure or CRS.
+OGR validates the reconstructed single-ring polygon, but it **cannot** prove
+that a flattened source polygon has no holes or additional parts, nor that its
+coordinates use metres. Therefore, calling adapters must verify those source
+properties before passing features to Pyromb. Support for holes, multipart
+basins or automatic CRS inspection would require an interface extension, which
+is not part of this contribution. Centroid points on basin boundaries are
+considered unmatched.
+
 ### Installing python package 
 
     $ pip install pyromb
@@ -57,8 +122,9 @@ If that fails, try:
 ## Setting Up A Catchment
 PyRomb uses four shapefiles to provide the necessary information to build the RORB, URBS or WBNM vector, these are detailed below. The attributes that must be present in the shapefile so that PR has can build the control files. The easiest way to ensure the necessary attributes are present is to use the example shapefiles in the [data](https://github.com/norman-tom/pyromb/tree/main/data) folder. 
 
-**WARNING**   
-the id fields must be globally unique between the reaches, confluences and centroids otherwise the .catg / .vec file will not build correctly. This will be updated in subsequent releases. 
+The id fields must be globally unique between the reaches, confluences and
+centroids. `Catchment` rejects missing, blank, non-finite or duplicate IDs before
+building the network.
 
 ### Reaches
 Reaches are the connection between basins and confluences.  
@@ -85,7 +151,8 @@ Point geometry
 **Support**  
 Fraction impervious  
 **Notes**  
-Centroid to Basin matching is done through nearest neighbour. If a centroid is moved too far away from the basin’s true centroid, it may match with another basin, or not match at all. 
+Centroids must lie strictly inside exactly one basin polygon. Each basin must
+contain exactly one centroid; boundary points and ambiguous matches are rejected.
 ### Basins
 Basins are only necessary to provide the centroid with an area. This was done to avoid having to transcribe area information into the Centroid shapefile as an attribute.  
 
@@ -105,7 +172,8 @@ Point geometry
 **Attributes**  
 'id' The name of the confluence [string]  
 'out' Flag whether this confluence is the outfall [integer]  
-<p>If no outlet is set, building the catchment will fail. If more than one is set, the first confluence with this attribute set will be adopted as the outlet. </p>
+Exactly one confluence must have `out=1`; all others must have `out=0`.
+Missing or multiple outlets are rejected.
 
 **Support**  
 Confluence Only  
