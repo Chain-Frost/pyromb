@@ -27,6 +27,18 @@ MiRORB is a similar more advance tool which uses the GIS package MapInfo. The un
 [Pandas](https://pandas.pydata.org/)
 [Matplotlib](https://matplotlib.org/)
 
+### Model input validation
+
+The Builder validates reach type (`t`), finite non-negative slope (`s`),
+impervious fraction (`fi`, from 0 to 1), and confluence outlet flag
+(`out`, only 0 or 1). Exactly one confluence must be designated as the
+outlet. `Catchment` additionally requires identifiers to be unique across
+reaches, centroids/basins and confluences.
+
+These are model-value checks through the existing `VectorLayer.record()`
+interface. They do **not** require any specific shapefile field storage type
+(e.g. OGR Integer64 versus Integer) and do not add dependencies.
+
 ### Basin geometry matching (QGIS and standalone use)
 
 Pyromb's Builder assigns each centroid to the **polygon containing it**, not
