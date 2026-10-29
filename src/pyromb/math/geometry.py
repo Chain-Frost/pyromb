@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import warnings
 from typing import TYPE_CHECKING
 
 from ..core.geometry.point import Point
@@ -103,11 +104,16 @@ def validate_line(vertices: list[tuple[float, float]]) -> None:
             raise ValueError(f"vertex {index} requires finite XY coordinates")
 
 
-def ogr_polygon(vertices: list[tuple[float, float]]) -> ogr.Geometry:
-    """Create a validated OGR polygon from a VectorLayer exterior ring.
+def ogr_polygon(
+    vertices: list[tuple[float, float]], *, context: str = "Basin polygon"
+) -> ogr.Geometry:
+    """Create a polygon from an exterior ring and optional closed interior rings.
 
     Importing OGR only when needed keeps the rest of Pyromb importable
     outside QGIS; GDAL Python bindings are required to build basins.
+    Closed rings concatenated by the QGIS adapter retain their closing vertex.
+    Preserve those boundaries instead of joining them with artificial edges.
+    Additional exterior parts and malformed ring sequences remain unsupported.
     """
     try:
         from osgeo import ogr
@@ -125,18 +131,52 @@ def ogr_polygon(vertices: list[tuple[float, float]]) -> ogr.Geometry:
         not math.isfinite(x) or not math.isfinite(y) for x, y in coords
     ):
         raise ValueError("Polygon needs at least three finite coordinates")
-    if coords[0] != coords[-1]:
-        coords.append(coords[0])
-    if len(set(coords[:-1])) < 3:
-        raise ValueError("Polygon has fewer than three distinct vertices")
+    rings: list[list[tuple[float, float]]] = []
+    pending: list[tuple[float, float]] = []
+    for point in coords:
+        pending.append(point)
+        if len(pending) > 1 and point == pending[0]:
+            rings.append(pending)
+            pending = []
+    if pending:
+        if rings:
+            raise ValueError("Polygon has an unclosed ring after a closed ring")
+        # Preserve support for a single exterior ring without a closing vertex.
+        rings.append([*pending, pending[0]])
 
-    ring = ogr.Geometry(ogr.wkbLinearRing)
-    for x, y in coords:
-        ring.AddPoint_2D(x, y)
-    polygon = ogr.Geometry(ogr.wkbPolygon)
-    polygon.AddGeometry(ring)
+    polygons = []
+    for points in rings:
+        if len(set(points[:-1])) < 3:
+            raise ValueError("Polygon ring has fewer than three distinct vertices")
+        ring = ogr.Geometry(ogr.wkbLinearRing)
+        for x, y in points:
+            ring.AddPoint_2D(x, y)
+        part = ogr.Geometry(ogr.wkbPolygon)
+        part.AddGeometry(ring)
+        if part.IsEmpty() or not part.IsValid() or part.GetArea() <= 0:
+            raise ValueError("Polygon ring is empty, invalid, or has zero area")
+        polygons.append(part)
+
+    polygon = polygons[0].Clone()
+    for interior in polygons[1:]:
+        if not polygons[0].Contains(interior):
+            raise ValueError(
+                "Polygon has invalid interior rings or multiple exterior parts; "
+                "each interior ring must lie inside the first exterior ring"
+            )
+        polygon.AddGeometry(interior.GetGeometryRef(0))
     if polygon.IsEmpty() or not polygon.IsValid() or polygon.GetArea() <= 0:
         raise ValueError("Polygon is empty, invalid, or has zero area")
+    if len(polygons) > 1:
+        count = len(polygons) - 1
+        excluded_area = sum(part.GetArea() for part in polygons[1:])
+        warnings.warn(
+            f"{context} contains {count} interior ring{'s' if count != 1 else ''} "
+            f"(hole area {excluded_area:g} square CRS units excluded from basin area). "
+            "Proceeding with the polygon and its holes preserved; input geometry is unchanged.",
+            UserWarning,
+            stacklevel=2,
+        )
     return polygon
 
 

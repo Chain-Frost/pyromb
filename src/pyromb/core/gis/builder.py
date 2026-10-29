@@ -112,10 +112,10 @@ class Builder:
         raise instead of silently writing wrong catchment areas.
 
         Polygon coordinates must use a projected CRS in metres. The current
-        VectorLayer interface represents a single exterior ring; multipart
-        Source geometry types, rings/parts and CRS are not exposed by VectorLayer.
-        Callers must verify those source properties; this method can validate
-        only the reconstructed ring and centroid coordinates.
+        VectorLayer interface supplies XY coordinates. Explicitly closed interior
+        rings concatenated after the exterior are preserved with a warning.
+        Source geometry type and CRS are not exposed; callers must verify them.
+        Multipart polygons are unsupported.
         """
         if not len(centroid) or not len(basin):
             raise ValueError("Centroid and basin layers must both contain features")
@@ -126,7 +126,7 @@ class Builder:
         for i in range(len(basin)):
             vertices = basin.geometry(i)
             try:
-                polygon = geometry.ogr_polygon(vertices)
+                polygon = geometry.ogr_polygon(vertices, context=f"Basin polygon feature {i}")
             except (TypeError, ValueError) as exc:
                 raise ValueError(f"Basin polygon feature {i}: {exc}") from exc
             polygons.append(polygon)

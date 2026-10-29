@@ -79,17 +79,24 @@ which are included with QGIS/OSGeo4W. Standalone Python installations must
 provide compatible GDAL bindings separately. This does **not** add Shapely or
 Matplotlib to the spatial matching code.
 
-Input polygons must be valid, single exterior rings with coordinates in a
-projected CRS measured in metres (the calculated area is reported in km²).
-The existing `VectorLayer.geometry()` API returns only coordinate sequences and
-does not expose the source feature's geometry type, ring/part structure or CRS.
-OGR validates the reconstructed single-ring polygon, but it **cannot** prove
-that a flattened source polygon has no holes or additional parts, nor that its
-coordinates use metres. Therefore, calling adapters must verify those source
-properties before passing features to Pyromb. Support for holes, multipart
-basins or automatic CRS inspection would require an interface extension, which
-is not part of this contribution. Centroid points on basin boundaries are
-considered unmatched.
+All input layers must share a projected CRS measured in metres (the calculated
+basin area is reported in km²). Basin polygons may contain holes. Pyromb emits a
+`UserWarning` identifying the basin feature, number of holes and excluded area,
+then proceeds with those holes preserved. Their areas are subtracted from the
+basin area; centroid points inside holes or on basin boundaries are unmatched.
+Input geometry is never changed or repaired.
+
+The existing `VectorLayer.geometry()` API returns only XY coordinates. For a
+polygon with holes, it must supply the exterior ring first, followed by the
+interior rings, each explicitly closed by repeating its first vertex. This is
+the sequence supplied by the unchanged QGIS adapter. A single exterior ring may
+still omit its closing vertex. Invalid rings and multiple exterior parts are
+rejected; multipart basins remain unsupported.
+
+The flat API cannot verify source geometry type or CRS, or recover ring
+boundaries that an adapter has omitted. Calling adapters must supply suitable
+polygon coordinates and verify source geometry type and CRS before passing
+features to Pyromb.
 
 ### Running validation tests
 

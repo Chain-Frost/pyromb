@@ -22,9 +22,12 @@ class Vector(VectorLayer):
 
         geometry = self.features[i].GetGeometryRef()
         if geometry.GetGeometryType() == ogr.wkbPolygon:
-            if geometry.GetGeometryCount() != 1:
-                raise ValueError("Test fixture reader supports exterior rings only")
-            geometry = geometry.GetGeometryRef(0)
+            # Match QVectorLayer.vertices(): retain each ring's closing vertex.
+            return [
+                (point[0], point[1])
+                for index in range(geometry.GetGeometryCount())
+                for point in geometry.GetGeometryRef(index).GetPoints()
+            ]
         elif geometry.GetGeometryType() not in (ogr.wkbPoint, ogr.wkbLineString):
             raise ValueError("Unsupported test fixture geometry")
         return [(p[0], p[1]) for p in geometry.GetPoints()]
