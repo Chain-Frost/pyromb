@@ -1,0 +1,445 @@
+{
+  "source_url": "https://github.com/user-attachments/files/17333000/BC_basins.zip",
+  "source_zip_sha256": "eeb2a19cb1a6ba3c2b38660310ebe02ea7a6bf2faab72b7622f2a75692b5b702",
+  "crs": "EPSG:28350",
+  "area_absolute_tolerance_m2": 0.0001,
+  "total_absolute_tolerance_m2": 0.001,
+  "changed_basin_feature_index": 6,
+  "previous_original_total_km2": 1630.4140663031646,
+  "previous_upstream_assigned_total_km2": 1261.60066975,
+  "datasets": {
+    "original": {
+      "basins": [
+        {
+          "feature_index": 0,
+          "source_fid": 0,
+          "basin_id": "1",
+          "centroid_id": "Basin_L",
+          "centroid_xy": [
+            487153.5301163316,
+            7513186.453607371
+          ],
+          "area_m2": 62768226.659961656,
+          "area_km2": 62.768226659961655,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 1,
+          "source_fid": 1,
+          "basin_id": "2",
+          "centroid_id": "Basin_N",
+          "centroid_xy": [
+            478838.03766270704,
+            7505485.094102589
+          ],
+          "area_m2": 144100084.18769413,
+          "area_km2": 144.10008418769414,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 2,
+          "source_fid": 2,
+          "basin_id": "3",
+          "centroid_id": "Basin_M",
+          "centroid_xy": [
+            486995.724396306,
+            7507625.252324968
+          ],
+          "area_m2": 110516307.40795234,
+          "area_km2": 110.51630740795234,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 3,
+          "source_fid": 3,
+          "basin_id": "4",
+          "centroid_id": "Basin_H",
+          "centroid_xy": [
+            493391.22727305925,
+            7496999.6780554615
+          ],
+          "area_m2": 162310557.53920516,
+          "area_km2": 162.31055753920518,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 4,
+          "source_fid": 4,
+          "basin_id": "5",
+          "centroid_id": "Basin_I",
+          "centroid_xy": [
+            495140.62231640733,
+            7505597.181597016
+          ],
+          "area_m2": 49770383.05735912,
+          "area_km2": 49.77038305735912,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 5,
+          "source_fid": 5,
+          "basin_id": "6",
+          "centroid_id": "Basin_G",
+          "centroid_xy": [
+            504434.98233607307,
+            7501875.077191594
+          ],
+          "area_m2": 165653231.21290538,
+          "area_km2": 165.65323121290538,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 6,
+          "source_fid": 6,
+          "basin_id": "7",
+          "centroid_id": "Basin_O",
+          "centroid_xy": [
+            469074.8822311526,
+            7501095.46986602
+          ],
+          "area_m2": 135958564.38543144,
+          "area_km2": 135.95856438543143,
+          "interior_rings": 1,
+          "hole_area_m2": 5.282533996505663
+        },
+        {
+          "feature_index": 7,
+          "source_fid": 7,
+          "basin_id": "8",
+          "centroid_id": "Basin_B",
+          "centroid_xy": [
+            529768.0591997354,
+            7505884.635654857
+          ],
+          "area_m2": 109933381.59767142,
+          "area_km2": 109.93338159767141,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 8,
+          "source_fid": 8,
+          "basin_id": "9",
+          "centroid_id": "Basin_A",
+          "centroid_xy": [
+            537888.8273558716,
+            7513860.238210083
+          ],
+          "area_m2": 130351946.6127299,
+          "area_km2": 130.3519466127299,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 9,
+          "source_fid": 9,
+          "basin_id": "10",
+          "centroid_id": "Basin_C",
+          "centroid_xy": [
+            523076.6379715614,
+            7510610.043660576
+          ],
+          "area_m2": 127118490.13302316,
+          "area_km2": 127.11849013302316,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 10,
+          "source_fid": 10,
+          "basin_id": "11",
+          "centroid_id": "Basin_E",
+          "centroid_xy": [
+            515631.26286445634,
+            7511151.815888559
+          ],
+          "area_m2": 56527628.95363655,
+          "area_km2": 56.52762895363655,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 11,
+          "source_fid": 11,
+          "basin_id": "12",
+          "centroid_id": "Basin_F",
+          "centroid_xy": [
+            504731.92458243045,
+            7509985.66951811
+          ],
+          "area_m2": 45030847.415182926,
+          "area_km2": 45.030847415182926,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 12,
+          "source_fid": 12,
+          "basin_id": "13",
+          "centroid_id": "Basin_J",
+          "centroid_xy": [
+            490917.17744398676,
+            7490360.000272511
+          ],
+          "area_m2": 115281330.51498675,
+          "area_km2": 115.28133051498675,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 13,
+          "source_fid": 13,
+          "basin_id": "14",
+          "centroid_id": "Basin_K",
+          "centroid_xy": [
+            484363.3879408703,
+            7488185.156434419
+          ],
+          "area_m2": 130909995.47757937,
+          "area_km2": 130.90999547757937,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 14,
+          "source_fid": 14,
+          "basin_id": "15",
+          "centroid_id": "Basin_D",
+          "centroid_xy": [
+            513542.9732128064,
+            7500340.282153701
+          ],
+          "area_m2": 84183091.14784534,
+          "area_km2": 84.18309114784535,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        }
+      ],
+      "total_area_m2": 1630414066.3031647,
+      "total_area_km2": 1630.4140663031646
+    },
+    "corrected": {
+      "basins": [
+        {
+          "feature_index": 0,
+          "source_fid": 0,
+          "basin_id": "1",
+          "centroid_id": "Basin_L",
+          "centroid_xy": [
+            487153.5301163316,
+            7513186.453607371
+          ],
+          "area_m2": 62768226.659961656,
+          "area_km2": 62.768226659961655,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 1,
+          "source_fid": 1,
+          "basin_id": "2",
+          "centroid_id": "Basin_N",
+          "centroid_xy": [
+            478838.03766270704,
+            7505485.094102589
+          ],
+          "area_m2": 144100084.18769413,
+          "area_km2": 144.10008418769414,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 2,
+          "source_fid": 2,
+          "basin_id": "3",
+          "centroid_id": "Basin_M",
+          "centroid_xy": [
+            486995.724396306,
+            7507625.252324968
+          ],
+          "area_m2": 110516307.40795234,
+          "area_km2": 110.51630740795234,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 3,
+          "source_fid": 3,
+          "basin_id": "4",
+          "centroid_id": "Basin_H",
+          "centroid_xy": [
+            493391.22727305925,
+            7496999.6780554615
+          ],
+          "area_m2": 162310557.53920516,
+          "area_km2": 162.31055753920518,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 4,
+          "source_fid": 4,
+          "basin_id": "5",
+          "centroid_id": "Basin_I",
+          "centroid_xy": [
+            495140.62231640733,
+            7505597.181597016
+          ],
+          "area_m2": 49770383.05735912,
+          "area_km2": 49.77038305735912,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 5,
+          "source_fid": 5,
+          "basin_id": "6",
+          "centroid_id": "Basin_G",
+          "centroid_xy": [
+            504434.98233607307,
+            7501875.077191594
+          ],
+          "area_m2": 165653231.21290538,
+          "area_km2": 165.65323121290538,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 6,
+          "source_fid": 6,
+          "basin_id": "7",
+          "centroid_id": "Basin_O",
+          "centroid_xy": [
+            469074.8822311526,
+            7501095.46986602
+          ],
+          "area_m2": 135958569.66796544,
+          "area_km2": 135.95856966796543,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 7,
+          "source_fid": 7,
+          "basin_id": "8",
+          "centroid_id": "Basin_B",
+          "centroid_xy": [
+            529768.0591997354,
+            7505884.635654857
+          ],
+          "area_m2": 109933381.59767142,
+          "area_km2": 109.93338159767141,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 8,
+          "source_fid": 8,
+          "basin_id": "9",
+          "centroid_id": "Basin_A",
+          "centroid_xy": [
+            537888.8273558716,
+            7513860.238210083
+          ],
+          "area_m2": 130351946.6127299,
+          "area_km2": 130.3519466127299,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 9,
+          "source_fid": 9,
+          "basin_id": "10",
+          "centroid_id": "Basin_C",
+          "centroid_xy": [
+            523076.6379715614,
+            7510610.043660576
+          ],
+          "area_m2": 127118490.13302316,
+          "area_km2": 127.11849013302316,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 10,
+          "source_fid": 10,
+          "basin_id": "11",
+          "centroid_id": "Basin_E",
+          "centroid_xy": [
+            515631.26286445634,
+            7511151.815888559
+          ],
+          "area_m2": 56527628.95363655,
+          "area_km2": 56.52762895363655,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 11,
+          "source_fid": 11,
+          "basin_id": "12",
+          "centroid_id": "Basin_F",
+          "centroid_xy": [
+            504731.92458243045,
+            7509985.66951811
+          ],
+          "area_m2": 45030847.415182926,
+          "area_km2": 45.030847415182926,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 12,
+          "source_fid": 12,
+          "basin_id": "13",
+          "centroid_id": "Basin_J",
+          "centroid_xy": [
+            490917.17744398676,
+            7490360.000272511
+          ],
+          "area_m2": 115281330.51498675,
+          "area_km2": 115.28133051498675,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 13,
+          "source_fid": 13,
+          "basin_id": "14",
+          "centroid_id": "Basin_K",
+          "centroid_xy": [
+            484363.3879408703,
+            7488185.156434419
+          ],
+          "area_m2": 130909995.47757937,
+          "area_km2": 130.90999547757937,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        },
+        {
+          "feature_index": 14,
+          "source_fid": 14,
+          "basin_id": "15",
+          "centroid_id": "Basin_D",
+          "centroid_xy": [
+            513542.9732128064,
+            7500340.282153701
+          ],
+          "area_m2": 84183091.14784534,
+          "area_km2": 84.18309114784535,
+          "interior_rings": 0,
+          "hole_area_m2": 0.0
+        }
+      ],
+      "total_area_m2": 1630414071.5856986,
+      "total_area_km2": 1630.4140715856986
+    }
+  },
+  "removed_hole_area_m2": 5.282533996505663
+}
