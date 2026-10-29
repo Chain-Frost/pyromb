@@ -180,7 +180,6 @@ def test_flattened_hole_and_multipart_examples_are_rejected(qgis_adapter, kind, 
     feature.setGeometry(core.QgsGeometry.fromWkt(wkt))
     assert feature.geometry().area() == area
     assert source.dataProvider().addFeatures([feature])[0]
-    # These examples are rejected after flattening. The API cannot establish
-    # that every possible source hole/part arrangement will remain detectable.
-    with pytest.raises(ValueError, match="invalid"):
+    # Additional flattened rings/parts must not produce an incorrect basin area.
+    with pytest.raises(ValueError, match=r"rings.*holes.*QGIS"):
         geometry.ogr_polygon(adapter(source).geometry(0))

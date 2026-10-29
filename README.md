@@ -79,17 +79,21 @@ which are included with QGIS/OSGeo4W. Standalone Python installations must
 provide compatible GDAL bindings separately. This does **not** add Shapely or
 Matplotlib to the spatial matching code.
 
-Input polygons must be valid, single exterior rings with coordinates in a
-projected CRS measured in metres (the calculated area is reported in km²).
-The existing `VectorLayer.geometry()` API returns only coordinate sequences and
-does not expose the source feature's geometry type, ring/part structure or CRS.
-OGR validates the reconstructed single-ring polygon, but it **cannot** prove
-that a flattened source polygon has no holes or additional parts, nor that its
-coordinates use metres. Therefore, calling adapters must verify those source
-properties before passing features to Pyromb. Support for holes, multipart
-basins or automatic CRS inspection would require an interface extension, which
-is not part of this contribution. Centroid points on basin boundaries are
-considered unmatched.
+All input layers must share a projected CRS measured in metres (the calculated
+basin area is reported in km²). Basin polygons must be single-part and have
+one exterior ring without holes. When the QGIS adapter exposes additional
+rings or parts, the Builder raises a `ValueError` identifying the basin feature.
+Remove the holes or split multipart polygons in QGIS, check the centroid
+assignments, then rebuild. Pyromb does not remove or repair geometry.
+
+A single exterior ring may be open or explicitly closed; repeated opening or
+closing vertices are accepted when OGR considers the polygon valid. Centroids
+on basin boundaries are unmatched.
+
+The existing `VectorLayer.geometry()` interface exposes only XY coordinates,
+not source feature geometry type or CRS. It cannot detect holes or parts if
+an adapter omits their coordinates or boundaries. Calling adapters must
+verify source geometry type and CRS before passing features to Pyromb.
 
 ### Running validation tests
 

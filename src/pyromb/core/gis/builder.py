@@ -112,10 +112,10 @@ class Builder:
         raise instead of silently writing wrong catchment areas.
 
         Polygon coordinates must use a projected CRS in metres. The current
-        VectorLayer interface represents a single exterior ring; multipart
-        Source geometry types, rings/parts and CRS are not exposed by VectorLayer.
-        Callers must verify those source properties; this method can validate
-        only the reconstructed ring and centroid coordinates.
+        VectorLayer interface supplies flattened XY coordinates. Polygons
+        with interior rings (holes) or multiple parts are not supported and
+        must be corrected in QGIS before building. Source geometry type and
+        CRS are not exposed; callers must verify these properties.
         """
         if not len(centroid) or not len(basin):
             raise ValueError("Centroid and basin layers must both contain features")

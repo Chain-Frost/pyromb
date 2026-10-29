@@ -104,10 +104,11 @@ def validate_line(vertices: list[tuple[float, float]]) -> None:
 
 
 def ogr_polygon(vertices: list[tuple[float, float]]) -> ogr.Geometry:
-    """Create a validated OGR polygon from a VectorLayer exterior ring.
+    """Create a validated single-ring OGR polygon.
 
-    Importing OGR only when needed keeps the rest of Pyromb importable
-    outside QGIS; GDAL Python bindings are required to build basins.
+    The QGIS adapter flattens the vertex sequence. A completed exterior ring
+    followed by further non-closing vertices indicates unsupported holes or
+    additional polygon parts. Do not silently miscalculate basin areas.
     """
     try:
         from osgeo import ogr
@@ -125,6 +126,23 @@ def ogr_polygon(vertices: list[tuple[float, float]]) -> ogr.Geometry:
         not math.isfinite(x) or not math.isfinite(y) for x, y in coords
     ):
         raise ValueError("Polygon needs at least three finite coordinates")
+
+    # Repeated opening/closing vertices are harmless. Only treat a return to
+    # the first vertex as ring closure after three distinct vertices exist.
+    origin = coords[0]
+    distinct: set[tuple[float, float]] = set()
+    exterior_closed = False
+    for point in coords:
+        distinct.add(point)
+        if point == origin and len(distinct) >= 3:
+            exterior_closed = True
+        elif exterior_closed:
+            raise ValueError(
+                "Polygon has multiple rings (holes) or parts. "
+                "Remove holes or split multipart basins into single-part "
+                "polygons in QGIS before rebuilding."
+            )
+
     if coords[0] != coords[-1]:
         coords.append(coords[0])
     if len(set(coords[:-1])) < 3:
