@@ -112,10 +112,10 @@ class Builder:
         raise instead of silently writing wrong catchment areas.
 
         Polygon coordinates must use a projected CRS in metres. The current
-        VectorLayer interface supplies XY coordinates. Explicitly closed interior
-        rings concatenated after the exterior are preserved with a warning.
-        Source geometry type and CRS are not exposed; callers must verify them.
-        Multipart polygons are unsupported.
+        VectorLayer interface supplies flattened XY coordinates. Polygons
+        with interior rings (holes) or multiple parts are not supported and
+        must be corrected in QGIS before building. Source geometry type and
+        CRS are not exposed; callers must verify these properties.
         """
         if not len(centroid) or not len(basin):
             raise ValueError("Centroid and basin layers must both contain features")
@@ -126,7 +126,7 @@ class Builder:
         for i in range(len(basin)):
             vertices = basin.geometry(i)
             try:
-                polygon = geometry.ogr_polygon(vertices, context=f"Basin polygon feature {i}")
+                polygon = geometry.ogr_polygon(vertices)
             except (TypeError, ValueError) as exc:
                 raise ValueError(f"Basin polygon feature {i}: {exc}") from exc
             polygons.append(polygon)

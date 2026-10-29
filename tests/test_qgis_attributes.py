@@ -168,9 +168,10 @@ def test_adapter_coordinates_do_not_identify_source_type_or_crs(qgis_adapter):
 
 
 @pytest.mark.parametrize("kind,wkt,area", [
+    ("Polygon", "POLYGON ((0 0,10 0,10 10,0 10,0 0),(2 2,2 8,8 8,8 2,2 2))", 64),
     ("MultiPolygon", "MULTIPOLYGON (((0 0,10 0,10 10,0 10,0 0)),((20 0,30 0,30 10,20 10,20 0)))", 200),
 ])
-def test_flattened_multipart_example_is_rejected(qgis_adapter, kind, wkt, area):
+def test_flattened_hole_and_multipart_examples_are_rejected(qgis_adapter, kind, wkt, area):
     from pyromb.math import geometry
 
     core, adapter = qgis_adapter
@@ -179,6 +180,6 @@ def test_flattened_multipart_example_is_rejected(qgis_adapter, kind, wkt, area):
     feature.setGeometry(core.QgsGeometry.fromWkt(wkt))
     assert feature.geometry().area() == area
     assert source.dataProvider().addFeatures([feature])[0]
-    # Disjoint exterior rings must not be silently interpreted as holes.
-    with pytest.raises(ValueError, match="invalid"):
+    # Additional flattened rings/parts must not produce an incorrect basin area.
+    with pytest.raises(ValueError, match=r"rings.*holes.*QGIS"):
         geometry.ogr_polygon(adapter(source).geometry(0))

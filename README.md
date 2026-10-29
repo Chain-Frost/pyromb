@@ -80,23 +80,20 @@ provide compatible GDAL bindings separately. This does **not** add Shapely or
 Matplotlib to the spatial matching code.
 
 All input layers must share a projected CRS measured in metres (the calculated
-basin area is reported in km²). Basin polygons may contain holes. Pyromb emits a
-`UserWarning` identifying the basin feature, number of holes and excluded area,
-then proceeds with those holes preserved. Their areas are subtracted from the
-basin area; centroid points inside holes or on basin boundaries are unmatched.
-Input geometry is never changed or repaired.
+basin area is reported in km²). Basin polygons must be single-part and have
+one exterior ring without holes. When the QGIS adapter exposes additional
+rings or parts, the Builder raises a `ValueError` identifying the basin feature.
+Remove the holes or split multipart polygons in QGIS, check the centroid
+assignments, then rebuild. Pyromb does not remove or repair geometry.
 
-The existing `VectorLayer.geometry()` API returns only XY coordinates. For a
-polygon with holes, it must supply the exterior ring first, followed by the
-interior rings, each explicitly closed by repeating its first vertex. This is
-the sequence supplied by the unchanged QGIS adapter. A single exterior ring may
-still omit its closing vertex. Invalid rings and multiple exterior parts are
-rejected; multipart basins remain unsupported.
+A single exterior ring may be open or explicitly closed; repeated opening or
+closing vertices are accepted when OGR considers the polygon valid. Centroids
+on basin boundaries are unmatched.
 
-The flat API cannot verify source geometry type or CRS, or recover ring
-boundaries that an adapter has omitted. Calling adapters must supply suitable
-polygon coordinates and verify source geometry type and CRS before passing
-features to Pyromb.
+The existing `VectorLayer.geometry()` interface exposes only XY coordinates,
+not source feature geometry type or CRS. It cannot detect holes or parts if
+an adapter omits their coordinates or boundaries. Calling adapters must
+verify source geometry type and CRS before passing features to Pyromb.
 
 ### Running validation tests
 
